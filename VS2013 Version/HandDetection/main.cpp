@@ -212,6 +212,7 @@ void produceBinaries(MyImage *m){
 void initWindows(MyImage m){
     namedWindow("trackbars",CV_WINDOW_KEEPRATIO);
     namedWindow("img1",CV_WINDOW_FULLSCREEN);
+	namedWindow("img2", CV_WINDOW_FULLSCREEN);
 }
 
 void showWindows(MyImage m){
@@ -335,6 +336,41 @@ int main(){
 		hg.frameNumber++;
 		m.cap >> m.src;
 		cv::flip(m.src,m.src,1);
+		cv::Mat src_copy;
+		m.src.copyTo(src_copy);
+
+		// run patch matching if a patch image is already found
+		if (!m.patchImg.empty()) {
+			/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
+			cv::Mat imageToCompare = m.src(regionToCompare);*/
+			cv::Mat result; // matrix to store matching result
+			int result_cols = m.src.cols - m.patchImg.cols + 1;
+			int result_rows = m.src.rows - m.patchImg.rows + 1;
+			/*int result_cols = imageToCompare.cols - m.patchImg.cols + 1;
+			int result_rows = imageToCompare.rows - m.patchImg.rows + 1;*/
+			result.create(result_rows, result_cols, CV_32FC1);
+			// do patch matching and normalization
+			//cv::flip(m.patchImg, m.patchImg, 1);
+			cv::matchTemplate(m.src, m.patchImg, result, CV_TM_CCOEFF_NORMED);
+			cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+			// localize the best match with minMaxLoc
+			double minVal, maxVal;
+			cv::Point minLoc, maxLoc, matchLoc;
+			cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+			matchLoc = maxLoc;
+			/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
+			matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
+			std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
+
+			if ((matchLoc.x + m.patchImg.cols) < m.src.cols &&
+				(matchLoc.y + m.patchImg.rows) < m.src.rows) {
+
+				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m.patchImg.cols,
+					matchLoc.y + m.patchImg.rows), cv::Scalar(0, 0, 255), 2, 8, 0);
+				cv::imshow("img2", src_copy);
+			}
+		}
+
 		cv::pyrDown(m.src,m.srcLR); // blur and down sampling an image
 		cv::blur(m.srcLR,m.srcLR,Size(3,3));
 		cv::cvtColor(m.srcLR,m.srcLR,ORIGCOL2COL); // convert the image from one color space to another
