@@ -21,9 +21,27 @@ int square_len;
 int avgColor[NSAMPLES][3] ;
 int c_lower[NSAMPLES][3];
 int c_upper[NSAMPLES][3];
+int maxCorners = 15;
+int maxTrackBar = 100;
 int avgBGR[3];
 int nrOfDefects;
 int iSinceKFInit;
+
+// params to call goodFeaturesToTrack
+vector<cv::Point2f> corners;
+double qualityLevel = 0.01;
+double minDistance = 10;
+int blockSize = 3;
+bool useHarrisDetector = false;
+double k = 0.04;
+cv::RNG rng(12345);
+
+// params to call calOpticalFlow
+std::vector<uchar> status;
+std::vector<float> err;
+cv::Size winSize(51, 51);
+cv::TermCriteria termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03);
+
 struct dim{int w; int h;}boundingDim;
 	cv::VideoWriter out;
 cv::Mat edges;
@@ -160,6 +178,9 @@ void initTrackbars(){
 	cv::createTrackbar("upper1","trackbars",&c_upper[0][0],255);
 	cv::createTrackbar("upper2","trackbars",&c_upper[0][1],255);
 	cv::createTrackbar("upper3","trackbars",&c_upper[0][2],255);
+
+	// goodFeaturesToTrack trackbar
+	cv::createTrackbar("Max corners:", "trackbars", &maxCorners, maxTrackBar);
 }
 
 
@@ -212,6 +233,7 @@ void produceBinaries(MyImage *m){
 void initWindows(MyImage m){
     namedWindow("trackbars",CV_WINDOW_KEEPRATIO);
     namedWindow("img1",CV_WINDOW_FULLSCREEN);
+	namedWindow("img2", CV_WINDOW_FULLSCREEN);
 }
 
 void showWindows(MyImage m){
@@ -345,7 +367,18 @@ int main(){
 		showWindows(m);
 		out << m.src;
 		imwrite("..\\images\\final_result.jpg",m.src);
-		m.srcLR.copyTo(m.srcPrev); // store previous frame
+
+		m.src.copyTo(m.srcPrev); // store previous frame
+		Mat src_gray;
+		cv::cvtColor(m.src, src_gray, CV_BGR2GRAY);
+		cv::goodFeaturesToTrack(src_gray, corners, maxCorners, qualityLevel, minDistance, Mat(), blockSize, useHarrisDetector, k);
+		std::cout << "Number of corners detected: " << corners.size() << std::endl;
+		int r = 4;
+		for (int i = 0; i < corners.size(); i++) {
+			circle(m.srcPrev, corners[i], r, cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)), -1, 9, 0);
+		}
+		cv::imshow("img2", m.srcPrev);
+
     	if(cv::waitKey(30) == char('q')) break;
 	}
 	destroyAllWindows();
