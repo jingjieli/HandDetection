@@ -2,7 +2,7 @@
 #define _HAND_GESTURE_ 
 
 #include <opencv2/imgproc/imgproc.hpp>
-#include<opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <vector>
 #include <string>
 #include "main.hpp"
@@ -43,6 +43,12 @@ class HandGesture{
 		void checkForOneFinger(MyImage *m);
 		float getAngle(Point s,Point f,Point e);	
 		vector<int> fingerNumbers;
+		vector<Point> oneFingerCoordinates;
+		vector<Point> firstFingerCoordinates;
+		vector<Point> secondFingerCoordinates;
+		vector<Point2f> prevFeaturePoints;
+		vector<Point2f> currFeaturePoints;
+		vector<Point2f> optFlowCoordinates;
 		void analyzeContours();
 		string intToString(int number);
 		void computeFingerNumber();

@@ -1,5 +1,5 @@
 #include <opencv2/imgproc/imgproc.hpp>
-#include<opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,11 +12,11 @@
 #include <cmath>
 #include "main.hpp"
 
-using namespace cv;
-using namespace std;
+//using namespace cv;
+//using namespace std;
 
 /* Global Variables  */
-int fontFace = FONT_HERSHEY_PLAIN;
+int fontFace = cv::FONT_HERSHEY_PLAIN;
 int square_len;
 int avgColor[NSAMPLES][3] ;
 int c_lower[NSAMPLES][3];
@@ -25,12 +25,12 @@ int avgBGR[3];
 int nrOfDefects;
 int iSinceKFInit;
 struct dim{int w; int h;}boundingDim;
-	VideoWriter out;
-Mat edges;
+	cv::VideoWriter out;
+cv::Mat edges;
 My_ROI roi1, roi2,roi3,roi4,roi5,roi6;
-vector <My_ROI> roi;
-vector <KalmanFilter> kf;
-vector <Mat_<float> > measurement;
+std::vector <My_ROI> roi;
+std::vector <KalmanFilter> kf;
+std::vector <cv::Mat_<float> > measurement;
 
 /* end global variables */
 
@@ -40,57 +40,64 @@ void init(MyImage *m){
 }
 
 // change a color from one space to another
-void col2origCol(int hsv[3], int bgr[3], Mat src){
+void col2origCol(int hsv[3], int bgr[3], cv::Mat src){
 	Mat avgBGRMat=src.clone();	
 	for(int i=0;i<3;i++){
 		avgBGRMat.data[i]=hsv[i];	
 	}
-	cvtColor(avgBGRMat,avgBGRMat,COL2ORIGCOL);
+	cv::cvtColor(avgBGRMat,avgBGRMat,COL2ORIGCOL);
 	for(int i=0;i<3;i++){
 		bgr[i]=avgBGRMat.data[i];	
 	}
 }
 
-void printText(Mat src, string text){
+void printText(cv::Mat src, std::string text){
 	int fontFace = FONT_HERSHEY_PLAIN;
-	putText(src,text,Point(src.cols/2, src.rows/10),fontFace, 1.2f,Scalar(200,0,0),2);
+	cv::putText(src,text,Point(src.cols/2, src.rows/10),fontFace, 1.2f,Scalar(200,0,0),2);
 }
 
 void waitForPalmCover(MyImage* m){
     m->cap >> m->src;
+	if (m->src.cols < 60 || m->src.rows < 40) {
+		std::cout << "m->src size is too small." << std::endl;
+	}
+	//m->src = Mat(60, 40, CV_32F);
 	flip(m->src,m->src,1);
-	roi.push_back(My_ROI(Point(m->src.cols/3, m->src.rows/6),Point(m->src.cols/3+square_len,m->src.rows/6+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/4, m->src.rows/2),Point(m->src.cols/4+square_len,m->src.rows/2+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/3, m->src.rows/1.5),Point(m->src.cols/3+square_len,m->src.rows/1.5+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/2, m->src.rows/2),Point(m->src.cols/2+square_len,m->src.rows/2+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/2.5, m->src.rows/2.5),Point(m->src.cols/2.5+square_len,m->src.rows/2.5+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/2, m->src.rows/1.5),Point(m->src.cols/2+square_len,m->src.rows/1.5+square_len),m->src));
-	roi.push_back(My_ROI(Point(m->src.cols/2.5, m->src.rows/1.8),Point(m->src.cols/2.5+square_len,m->src.rows/1.8+square_len),m->src));
+	//std::cout << m->src.cols / 3 << " " << m->src.rows / 6 << " " << m->src.cols/3+square_len << std::endl;
+	// define areas to sample hand color
+	roi.push_back(My_ROI(cv::Point(m->src.cols/3, m->src.rows/6),cv::Point(m->src.cols/3+square_len,m->src.rows/6+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/4, m->src.rows/2),cv::Point(m->src.cols/4+square_len,m->src.rows/2+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/3, m->src.rows/1.5),cv::Point(m->src.cols/3+square_len,m->src.rows/1.5+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/2, m->src.rows/2),cv::Point(m->src.cols/2+square_len,m->src.rows/2+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/2.5, m->src.rows/2.5),cv::Point(m->src.cols/2.5+square_len,m->src.rows/2.5+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/2, m->src.rows/1.5),cv::Point(m->src.cols/2+square_len,m->src.rows/1.5+square_len),m->src));
+	roi.push_back(My_ROI(cv::Point(m->src.cols/2.5, m->src.rows/1.8),cv::Point(m->src.cols/2.5+square_len,m->src.rows/1.8+square_len),m->src));
 	
 	
 	for(int i =0;i<50;i++){
     	m->cap >> m->src;
-		flip(m->src,m->src,1);
+		cv::flip(m->src,m->src,1);
+		// draw N roi on image
 		for(int j=0;j<NSAMPLES;j++){
 			roi[j].draw_rectangle(m->src);
 		}
-		string imgText=string("Cover rectangles with palm");
+		std::string imgText = std::string("Cover rectangles with palm");
 		printText(m->src,imgText);	
 		
 		if(i==30){
-		//	imwrite("./images/waitforpalm1.jpg",m->src);
+			cv::imwrite("..\\images\\waitforpalm1.jpg",m->src);
 		}
 
-		imshow("img1", m->src);
+		cv::imshow("img1", m->src);
 		out << m->src;
         if(cv::waitKey(30) >= 0) break;
 	}
 }
 
-int getMedian(vector<int> val){
+int getMedian(std::vector<int> val){
   int median;
   size_t size = val.size();
-  sort(val.begin(), val.end());
+  std::sort(val.begin(), val.end());
   if (size  % 2 == 0)  {
       median = val[size / 2 - 1] ;
   } else{
@@ -101,11 +108,11 @@ int getMedian(vector<int> val){
 
 
 void getAvgColor(MyImage *m,My_ROI roi,int avg[3]){
-	Mat r;
+	cv::Mat r;
 	roi.roi_ptr.copyTo(r);
-	vector<int>hm;
-	vector<int>sm;
-	vector<int>lm;
+	std::vector<int>hm;
+	std::vector<int>sm;
+	std::vector<int>lm;
 	// generate vectors
 	for(int i=2; i<r.rows-2; i++){
     	for(int j=2; j<r.cols-2; j++){
@@ -121,19 +128,19 @@ void getAvgColor(MyImage *m,My_ROI roi,int avg[3]){
 
 void average(MyImage *m){
 	m->cap >> m->src;
-	flip(m->src,m->src,1);
-	for(int i=0;i<30;i++){
+	cv::flip(m->src,m->src,1);
+	for(int i=0;i<100;i++){
 		m->cap >> m->src;
-		flip(m->src,m->src,1);
-		cvtColor(m->src,m->src,ORIGCOL2COL);
+		cv::flip(m->src,m->src,1);
+		cv::cvtColor(m->src,m->src,ORIGCOL2COL);
 		for(int j=0;j<NSAMPLES;j++){
 			getAvgColor(m,roi[j],avgColor[j]);
 			roi[j].draw_rectangle(m->src);
 		}	
-		cvtColor(m->src,m->src,COL2ORIGCOL);
-		string imgText=string("Finding average color of hand");
+		cv::cvtColor(m->src,m->src,COL2ORIGCOL);
+		std::string imgText = std::string("Finding average color of hand");
 		printText(m->src,imgText);	
-		imshow("img1", m->src);
+		cv::imshow("img1", m->src);
         if(cv::waitKey(30) >= 0) break;
 	}
 }
@@ -147,12 +154,12 @@ void initTrackbars(){
 		c_lower[i][2]=80;
 		c_upper[i][2]=80;
 	}
-	createTrackbar("lower1","trackbars",&c_lower[0][0],255);
-	createTrackbar("lower2","trackbars",&c_lower[0][1],255);
-	createTrackbar("lower3","trackbars",&c_lower[0][2],255);
-	createTrackbar("upper1","trackbars",&c_upper[0][0],255);
-	createTrackbar("upper2","trackbars",&c_upper[0][1],255);
-	createTrackbar("upper3","trackbars",&c_upper[0][2],255);
+	cv::createTrackbar("lower1","trackbars",&c_lower[0][0],255);
+	cv::createTrackbar("lower2","trackbars",&c_lower[0][1],255);
+	cv::createTrackbar("lower3","trackbars",&c_lower[0][2],255);
+	cv::createTrackbar("upper1","trackbars",&c_upper[0][0],255);
+	cv::createTrackbar("upper2","trackbars",&c_upper[0][1],255);
+	cv::createTrackbar("upper3","trackbars",&c_upper[0][2],255);
 }
 
 
@@ -185,15 +192,15 @@ void normalizeColors(MyImage * myImage){
 }
 
 void produceBinaries(MyImage *m){	
-	Scalar lowerBound;
-	Scalar upperBound;
-	Mat foo;
+	cv::Scalar lowerBound;
+	cv::Scalar upperBound;
+	cv::Mat foo;
 	for(int i=0;i<NSAMPLES;i++){
 		normalizeColors(m);
-		lowerBound=Scalar( avgColor[i][0] - c_lower[i][0] , avgColor[i][1] - c_lower[i][1], avgColor[i][2] - c_lower[i][2] );
-		upperBound=Scalar( avgColor[i][0] + c_upper[i][0] , avgColor[i][1] + c_upper[i][1], avgColor[i][2] + c_upper[i][2] );
-		m->bwList.push_back(Mat(m->srcLR.rows,m->srcLR.cols,CV_8U));	
-		inRange(m->srcLR,lowerBound,upperBound,m->bwList[i]);	
+		lowerBound=cv::Scalar( avgColor[i][0] - c_lower[i][0] , avgColor[i][1] - c_lower[i][1], avgColor[i][2] - c_lower[i][2] );
+		upperBound=cv::Scalar( avgColor[i][0] + c_upper[i][0] , avgColor[i][1] + c_upper[i][1], avgColor[i][2] + c_upper[i][2] );
+		m->bwList.push_back(cv::Mat(m->srcLR.rows,m->srcLR.cols,CV_8U));	
+		cv::inRange(m->srcLR,lowerBound,upperBound,m->bwList[i]);	
 	}
 	m->bwList[0].copyTo(m->bw);
 	for(int i=1;i<NSAMPLES;i++){
@@ -210,17 +217,17 @@ void initWindows(MyImage m){
 void showWindows(MyImage m){
 	pyrDown(m.bw,m.bw);
 	pyrDown(m.bw,m.bw);
-	Rect roi( Point( 3*m.src.cols/4,0 ), m.bw.size());
-	vector<Mat> channels;
-	Mat result;
+	cv::Rect roi( cv::Point( 3*m.src.cols/4,0 ), m.bw.size());
+	std::vector<cv::Mat> channels;
+	cv::Mat result;
 	for(int i=0;i<3;i++)
 		channels.push_back(m.bw);
-	merge(channels,result);
+	cv::merge(channels,result);
 	result.copyTo( m.src(roi));
-	imshow("img1",m.src);	
+	cv::imshow("img1",m.src);	
 }
 
-int findBiggestContour(vector<vector<Point> > contours){
+int findBiggestContour(std::vector<std::vector<cv::Point> > contours){
     int indexOfBiggestContour = -1;
     int sizeOfBiggestContour = 0;
     for (int i = 0; i < contours.size(); i++){
@@ -233,7 +240,7 @@ int findBiggestContour(vector<vector<Point> > contours){
 }
 
 void myDrawContours(MyImage *m,HandGesture *hg){
-	drawContours(m->src,hg->hullP,hg->cIdx,cv::Scalar(200,0,0),2, 8, vector<Vec4i>(), 0, Point());
+	drawContours(m->src,hg->hullP,hg->cIdx,cv::Scalar(200,0,0),2, 8, std::vector<cv::Vec4i>(), 0, cv::Point());
 
 
 
@@ -248,7 +255,7 @@ void myDrawContours(MyImage *m,HandGesture *hg){
 		for(int i=0;i<3;i++)
 			channels.push_back(m->bw);
 		merge(channels,result);
-	//	drawContours(result,hg->contours,hg->cIdx,cv::Scalar(0,200,0),6, 8, vector<Vec4i>(), 0, Point());
+		//drawContours(result,hg->contours,hg->cIdx,cv::Scalar(0,200,0),6, 8, vector<Vec4i>(), 0, Point());
 		drawContours(result,hg->hullP,hg->cIdx,cv::Scalar(0,0,250),10, 8, vector<Vec4i>(), 0, Point());
 
 		
@@ -271,29 +278,33 @@ void myDrawContours(MyImage *m,HandGesture *hg){
 	    d++;
 
    	 }
-//	imwrite("./images/contour_defects_before_eliminate.jpg",result);
+	 imwrite("..\\images\\contour_defects_before_eliminate.jpg",result);
 
 }
 
 void makeContours(MyImage *m, HandGesture* hg){
 	Mat aBw;
-	pyrUp(m->bw,m->bw);
+	cv::pyrUp(m->bw,m->bw);
 	m->bw.copyTo(aBw);
-	findContours(aBw,hg->contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
+	cv::findContours(aBw,hg->contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
+	std::cout << "Current contour size is " << (int)hg->contours.size() << std::endl;
 	hg->initVectors(); 
-	hg->cIdx=findBiggestContour(hg->contours);
+	hg->cIdx=findBiggestContour(hg->contours); // record the biggest contour index in hg->cIdx
+	std::cout << "biggest contour has a size of " << hg->contours[hg->cIdx].size() << std::endl;
 	if(hg->cIdx!=-1){
-//		approxPolyDP( Mat(hg->contours[hg->cIdx]), hg->contours[hg->cIdx], 11, true );
-		hg->bRect=boundingRect(Mat(hg->contours[hg->cIdx]));		
-		convexHull(Mat(hg->contours[hg->cIdx]),hg->hullP[hg->cIdx],false,true);
-		convexHull(Mat(hg->contours[hg->cIdx]),hg->hullI[hg->cIdx],false,false);
+        //approxPolyDP( Mat(hg->contours[hg->cIdx]), hg->contours[hg->cIdx], 11, true );
+		// use the biggest contour that has been found
+		hg->bRect=boundingRect(Mat(hg->contours[hg->cIdx])); // get the bounding box of the contour	
+		cv::convexHull(Mat(hg->contours[hg->cIdx]),hg->hullP[hg->cIdx],false,true); // return convex hull points
+		cv::convexHull(Mat(hg->contours[hg->cIdx]),hg->hullI[hg->cIdx],false,false); // return indices of convex hull points
 		approxPolyDP( Mat(hg->hullP[hg->cIdx]), hg->hullP[hg->cIdx], 18, true );
 		if(hg->contours[hg->cIdx].size()>3 ){
-			convexityDefects(hg->contours[hg->cIdx],hg->hullI[hg->cIdx],hg->defects[hg->cIdx]);
+			cv::convexityDefects(hg->contours[hg->cIdx],hg->hullI[hg->cIdx],hg->defects[hg->cIdx]);
 			hg->eleminateDefects(m);
 		}
 		bool isHand=hg->detectIfHand();
 		hg->printGestureInfo(m->src);
+		hg->fingerTips.clear();
 		if(isHand){	
 			hg->getFingerTips(m);
 			hg->drawFingerTips(m);
@@ -304,31 +315,37 @@ void makeContours(MyImage *m, HandGesture* hg){
 
 
 int main(){
-	MyImage m(0);		
+	MyImage m(0);	// init MyImage with webcamera 0	
+	// check if the camera is open successfully
+	if (!m.cap.isOpened()) {
+		std::cout << "Camera is not working as expect." << std::endl;
+	}
 	HandGesture hg;
 	init(&m);		
-	m.cap >>m.src;
+	m.cap >> m.src; // get a new frame from camera
     namedWindow("img1",CV_WINDOW_KEEPRATIO);
 	out.open("out.avi", CV_FOURCC('M', 'J', 'P', 'G'), 15, m.src.size(), true);
-	waitForPalmCover(&m);
+	waitForPalmCover(&m); 
 	average(&m);
 	destroyWindow("img1");
 	initWindows(m);
 	initTrackbars();
 	for(;;){
+		std::cout << "-------------" << std::endl;
 		hg.frameNumber++;
 		m.cap >> m.src;
-		flip(m.src,m.src,1);
-		pyrDown(m.src,m.srcLR);
-		blur(m.srcLR,m.srcLR,Size(3,3));
-		cvtColor(m.srcLR,m.srcLR,ORIGCOL2COL);
+		cv::flip(m.src,m.src,1);
+		cv::pyrDown(m.src,m.srcLR); // blur and down sampling an image
+		cv::blur(m.srcLR,m.srcLR,Size(3,3));
+		cv::cvtColor(m.srcLR,m.srcLR,ORIGCOL2COL); // convert the image from one color space to another
 		produceBinaries(&m);
 		cvtColor(m.srcLR,m.srcLR,COL2ORIGCOL);
 		makeContours(&m, &hg);
 		hg.getFingerNumber(&m);
 		showWindows(m);
 		out << m.src;
-		//imwrite("./images/final_result.jpg",m.src);
+		imwrite("..\\images\\final_result.jpg",m.src);
+		m.srcLR.copyTo(m.srcPrev); // store previous frame
     	if(cv::waitKey(30) == char('q')) break;
 	}
 	destroyAllWindows();

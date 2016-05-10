@@ -22,10 +22,15 @@ My_ROI::My_ROI(Point u_corner, Point l_corner, Mat src){
 	lower_corner=l_corner;
 	color=Scalar(0,255,0);
 	border_thickness=2;
+	//std::cout << u_corner.x << " " << u_corner.y << " " << l_corner.x << " " << l_corner.y << std::endl;
+	//cv::Rect tempRect(u_corner.x, u_corner.y, l_corner.x - u_corner.x, l_corner.y - u_corner.y);
+	//std::cout << tempRect.x << " " << tempRect.width << " " << src.cols << std::endl;
+	//std::cout << tempRect.y << " " << tempRect.height << " " << src.rows << std::endl;
+	//roi_ptr = src(tempRect);
 	roi_ptr=src(Rect(u_corner.x, u_corner.y, l_corner.x-u_corner.x,l_corner.y-u_corner.y));
 }
 
 void My_ROI::draw_rectangle(Mat src){
-	rectangle(src,upper_corner,lower_corner,color,border_thickness);
+	cv::rectangle(src,upper_corner,lower_corner,color,border_thickness);
 
 }
