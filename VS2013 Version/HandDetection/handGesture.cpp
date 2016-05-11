@@ -272,17 +272,6 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			oneFingerCoordinates.push_back(highestP);
 		}
 
-		m->fingerTipLoc = highestP;
-
-		if ((highestP.x - 20) > 0 && 
-			(highestP.y - 20) > 0) {
-			cv::Rect patchRect(highestP.x - 20, highestP.y - 20, 40, 40);
-			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
-			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
-		}
-		
-
 		/*cv::Mat prev_gray, curr_gray;
 		if (oneFingerCoordinates.size() <= 15) {
 			prevFeaturePoints.clear();
@@ -325,14 +314,6 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		currFeaturePoints.clear();*/
 
 		std::cout << "highestP (1 finger) coordinates: " << highestP.x << " " << highestP.y << std::endl;
-	}
-	else {
-		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0) {
-			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
-			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
-			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
-		}
 	}
 }
 
