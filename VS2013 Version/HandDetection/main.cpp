@@ -21,27 +21,9 @@ int square_len;
 int avgColor[NSAMPLES][3] ;
 int c_lower[NSAMPLES][3];
 int c_upper[NSAMPLES][3];
-int maxCorners = 15;
-int maxTrackBar = 100;
 int avgBGR[3];
 int nrOfDefects;
 int iSinceKFInit;
-
-// params to call goodFeaturesToTrack
-vector<cv::Point2f> corners;
-double qualityLevel = 0.01;
-double minDistance = 10;
-int blockSize = 3;
-bool useHarrisDetector = false;
-double k = 0.04;
-cv::RNG rng(12345);
-
-// params to call calOpticalFlow
-std::vector<uchar> status;
-std::vector<float> err;
-cv::Size winSize(51, 51);
-cv::TermCriteria termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03);
-
 struct dim{int w; int h;}boundingDim;
 	cv::VideoWriter out;
 cv::Mat edges;
@@ -178,9 +160,6 @@ void initTrackbars(){
 	cv::createTrackbar("upper1","trackbars",&c_upper[0][0],255);
 	cv::createTrackbar("upper2","trackbars",&c_upper[0][1],255);
 	cv::createTrackbar("upper3","trackbars",&c_upper[0][2],255);
-
-	// goodFeaturesToTrack trackbar
-	cv::createTrackbar("Max corners:", "trackbars", &maxCorners, maxTrackBar);
 }
 
 
@@ -357,6 +336,41 @@ int main(){
 		hg.frameNumber++;
 		m.cap >> m.src;
 		cv::flip(m.src,m.src,1);
+		cv::Mat src_copy;
+		m.src.copyTo(src_copy);
+
+		// run patch matching if a patch image is already found
+		if (!m.patchImg.empty()) {
+			/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
+			cv::Mat imageToCompare = m.src(regionToCompare);*/
+			cv::Mat result; // matrix to store matching result
+			int result_cols = m.src.cols - m.patchImg.cols + 1;
+			int result_rows = m.src.rows - m.patchImg.rows + 1;
+			/*int result_cols = imageToCompare.cols - m.patchImg.cols + 1;
+			int result_rows = imageToCompare.rows - m.patchImg.rows + 1;*/
+			result.create(result_rows, result_cols, CV_32FC1);
+			// do patch matching and normalization
+			//cv::flip(m.patchImg, m.patchImg, 1);
+			cv::matchTemplate(m.src, m.patchImg, result, CV_TM_CCOEFF_NORMED);
+			cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+			// localize the best match with minMaxLoc
+			double minVal, maxVal;
+			cv::Point minLoc, maxLoc, matchLoc;
+			cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+			matchLoc = maxLoc;
+			/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
+			matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
+			std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
+
+			if ((matchLoc.x + m.patchImg.cols) < m.src.cols &&
+				(matchLoc.y + m.patchImg.rows) < m.src.rows) {
+
+				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m.patchImg.cols,
+					matchLoc.y + m.patchImg.rows), cv::Scalar(0, 0, 255), 2, 8, 0);
+				cv::imshow("img2", src_copy);
+			}
+		}
+
 		cv::pyrDown(m.src,m.srcLR); // blur and down sampling an image
 		cv::blur(m.srcLR,m.srcLR,Size(3,3));
 		cv::cvtColor(m.srcLR,m.srcLR,ORIGCOL2COL); // convert the image from one color space to another
@@ -367,18 +381,7 @@ int main(){
 		showWindows(m);
 		out << m.src;
 		imwrite("..\\images\\final_result.jpg",m.src);
-
-		m.src.copyTo(m.srcPrev); // store previous frame
-		Mat src_gray;
-		cv::cvtColor(m.src, src_gray, CV_BGR2GRAY);
-		cv::goodFeaturesToTrack(src_gray, corners, maxCorners, qualityLevel, minDistance, Mat(), blockSize, useHarrisDetector, k);
-		std::cout << "Number of corners detected: " << corners.size() << std::endl;
-		int r = 4;
-		for (int i = 0; i < corners.size(); i++) {
-			circle(m.srcPrev, corners[i], r, cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)), -1, 9, 0);
-		}
-		cv::imshow("img2", m.srcPrev);
-
+		m.srcLR.copyTo(m.srcPrev); // store previous frame
     	if(cv::waitKey(30) == char('q')) break;
 	}
 	destroyAllWindows();
