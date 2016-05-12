@@ -32,6 +32,8 @@ std::vector <My_ROI> roi;
 std::vector <KalmanFilter> kf;
 std::vector <cv::Mat_<float> > measurement;
 
+int noFingerFrameCounter, oneFingerFrameCounter, twoFingersFrameCounter, othersFrameCounter;
+
 /* end global variables */
 
 void init(MyImage *m){
@@ -314,6 +316,137 @@ void makeContours(MyImage *m, HandGesture* hg){
 	}
 }
 
+void switchState(HandGesture* hg) {
+	// hand gesture state machine
+	if (hg->fingerTips.size() == 1) {
+		oneFingerFrameCounter++;
+		if (oneFingerFrameCounter >= 8) {
+			// reset other frame counters
+			noFingerFrameCounter = 0;
+			twoFingersFrameCounter = 0;
+			othersFrameCounter = 0;
+			// switch state to ONE_FINGER
+			hg->state = ONE_FINGER;
+		}
+	}
+	else if (hg->fingerTips.size() == 0) {
+		noFingerFrameCounter++;
+		if (noFingerFrameCounter >= 5) {
+			// reset other frame counters
+			oneFingerFrameCounter = 0;
+			othersFrameCounter = 0;
+			// switch state to IDLE
+			hg->state = IDLE;
+		}
+	}
+	else if (hg->fingerTips.size() == 2) {
+		twoFingersFrameCounter++;
+		if (twoFingersFrameCounter >= 10 ||
+			(oneFingerFrameCounter >= 5 && twoFingersFrameCounter >= 5)) {
+			// reset other frame counters
+			noFingerFrameCounter = 0;
+			oneFingerFrameCounter = 0;
+			othersFrameCounter = 0;
+			// switch state to TWO_FINGERS
+			hg->state = TWO_FINGERS;
+		}
+	}
+	else {
+		othersFrameCounter++;
+		if (othersFrameCounter >= 5) {
+			// reset other frame counters
+			noFingerFrameCounter = 0;
+			oneFingerFrameCounter = 0;
+			// switch state to OTHERS
+			hg->state = OTHERS;
+		}
+	}
+
+	std::cout << hg->fingerTips.size() << " finger(s) detected in current frame." << std::endl;
+	std::cout << "noFingerFrameCounter = " << noFingerFrameCounter << std::endl;
+	std::cout << "oneFingerFrameCounter = " << oneFingerFrameCounter << std::endl;
+	std::cout << "twoFingerFrameCounter = " << twoFingersFrameCounter << std::endl;
+	std::cout << "othersFrameCounter = " << othersFrameCounter << std::endl;
+
+	switch (hg->state)
+	{
+	case GestureState::IDLE:
+		std::cout << "Current state is IDLE." << std::endl;
+		break;
+	case GestureState::ONE_FINGER:
+		std::cout << "Current state is ONE_FINGER." << std::endl;
+		break;
+	case GestureState::TWO_FINGERS:
+		std::cout << "Currnet state is TWO_FINGERS." << std::endl;
+		break;
+	case GestureState::OTHERS:
+		std::cout << "Current state is OTHERS." << std::endl;
+		break;
+	default:
+		std::cout << "Current state is not recognized." << std::endl;
+		break;
+	}
+}
+
+void patchMatchingTracker(MyImage *m, HandGesture* hg) {
+	cv::Mat src_copy;
+	m->src.copyTo(src_copy);
+
+	// run patch matching if a patch image is already found
+	if (!m->patchImg.empty()) {
+		/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
+		cv::Mat imageToCompare = m.src(regionToCompare);*/
+		cv::Mat result; // matrix to store matching result
+		int result_cols = m->src.cols - m->patchImg.cols + 1;
+		int result_rows = m->src.rows - m->patchImg.rows + 1;
+		/*int result_cols = imageToCompare.cols - m.patchImg.cols + 1;
+		int result_rows = imageToCompare.rows - m.patchImg.rows + 1;*/
+		result.create(result_rows, result_cols, CV_32FC1);
+		// do patch matching and normalization
+		//cv::flip(m.patchImg, m.patchImg, 1);
+		cv::matchTemplate(m->src, m->patchImg, result, CV_TM_CCOEFF_NORMED);
+		cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+		// localize the best match with minMaxLoc
+		double minVal, maxVal;
+		cv::Point minLoc, maxLoc, matchLoc;
+		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+		matchLoc = maxLoc;
+		/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
+		matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
+		std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
+
+		if (hg->matchPointsCoordinates.size() > 0) {
+			if (sqrt(pow(hg->matchPointsCoordinates.back().x - matchLoc.x, 2) +
+				pow(hg->matchPointsCoordinates.back().y - matchLoc.y, 2)) < 100) {
+				if (hg->matchPointsCoordinates.size() == 30) {
+					hg->matchPointsCoordinates.erase(hg->matchPointsCoordinates.begin());
+				}
+				hg->matchPointsCoordinates.push_back(matchLoc);
+			}
+			else {
+				hg->matchPointsCoordinates.clear();
+			}
+		}
+		else if (hg->matchPointsCoordinates.size() == 0) {
+			hg->matchPointsCoordinates.push_back(matchLoc);
+		}
+
+		if ((matchLoc.x + m->patchImg.cols) < m->src.cols &&
+			(matchLoc.y + m->patchImg.rows) < m->src.rows) {
+
+			cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->patchImg.cols,
+				matchLoc.y + m->patchImg.rows), cv::Scalar(0, 0, 255), 2, 8, 0);
+			if (hg->matchPointsCoordinates.size() >= 2) {
+				for (int i = 0; i < hg->matchPointsCoordinates.size() - 1; i++) {
+					cv::line(src_copy, hg->matchPointsCoordinates[i], hg->matchPointsCoordinates[i + 1], cv::Scalar(0, 0, 255), 2, 8);
+				}
+			}
+			cv::imshow("img2", src_copy);
+		}
+	}
+
+}
+
 
 int main(){
 	MyImage m(0);	// init MyImage with webcamera 0	
@@ -323,6 +456,9 @@ int main(){
 	}
 	HandGesture hg;
 	hg.state = IDLE; // initial state is IDLE
+	oneFingerFrameCounter = 0;
+	noFingerFrameCounter = 0;
+	othersFrameCounter = 0;
 	init(&m);		
 	m.cap >> m.src; // get a new frame from camera
     namedWindow("img1",CV_WINDOW_KEEPRATIO);
@@ -337,61 +473,8 @@ int main(){
 		hg.frameNumber++;
 		m.cap >> m.src;
 		cv::flip(m.src,m.src,1);
-		cv::Mat src_copy;
-		m.src.copyTo(src_copy);
-
-		// run patch matching if a patch image is already found
-		if (!m.patchImg.empty()) {
-			/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
-			cv::Mat imageToCompare = m.src(regionToCompare);*/
-			cv::Mat result; // matrix to store matching result
-			int result_cols = m.src.cols - m.patchImg.cols + 1;
-			int result_rows = m.src.rows - m.patchImg.rows + 1;
-			/*int result_cols = imageToCompare.cols - m.patchImg.cols + 1;
-			int result_rows = imageToCompare.rows - m.patchImg.rows + 1;*/
-			result.create(result_rows, result_cols, CV_32FC1);
-			// do patch matching and normalization
-			//cv::flip(m.patchImg, m.patchImg, 1);
-			cv::matchTemplate(m.src, m.patchImg, result, CV_TM_CCOEFF_NORMED);
-			cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
-			// localize the best match with minMaxLoc
-			double minVal, maxVal;
-			cv::Point minLoc, maxLoc, matchLoc;
-			cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-			matchLoc = maxLoc;
-			/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
-			matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
-			std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
-
-			if (hg.matchPointsCoordinates.size() > 0) {
-				if (sqrt(pow(hg.matchPointsCoordinates.back().x - matchLoc.x, 2) + 
-					pow(hg.matchPointsCoordinates.back().y - matchLoc.y, 2)) < 100) {
-					if (hg.matchPointsCoordinates.size() == 30) {
-						hg.matchPointsCoordinates.erase(hg.matchPointsCoordinates.begin());
-					}
-					hg.matchPointsCoordinates.push_back(matchLoc);
-				}
-				else {
-					hg.matchPointsCoordinates.clear();
-				}
-			}
-			else if (hg.matchPointsCoordinates.size() == 0) {
-				hg.matchPointsCoordinates.push_back(matchLoc);
-			}
-
-			if ((matchLoc.x + m.patchImg.cols) < m.src.cols &&
-				(matchLoc.y + m.patchImg.rows) < m.src.rows) {
-
-				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m.patchImg.cols,
-					matchLoc.y + m.patchImg.rows), cv::Scalar(0, 0, 255), 2, 8, 0);
-				if (hg.matchPointsCoordinates.size() >= 2) {
-					for (int i = 0; i < hg.matchPointsCoordinates.size() - 1; i++) {
-						cv::line(src_copy, hg.matchPointsCoordinates[i], hg.matchPointsCoordinates[i + 1], cv::Scalar(0, 0, 255), 2, 8);
-					}
-				}
-				cv::imshow("img2", src_copy);
-			}
-		}
+		
+		patchMatchingTracker(&m, &hg); // call patch matching to track fingertip 
 
 		cv::pyrDown(m.src,m.srcLR); // blur and down sampling an image
 		cv::blur(m.srcLR,m.srcLR,Size(3,3));
@@ -400,6 +483,9 @@ int main(){
 		cvtColor(m.srcLR,m.srcLR,COL2ORIGCOL);
 		makeContours(&m, &hg);
 		hg.getFingerNumber(&m);
+
+		switchState(&hg); // update state with detected finger(s)
+
 		showWindows(m);
 		out << m.src;
 		imwrite("..\\images\\final_result.jpg",m.src);

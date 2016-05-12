@@ -8,7 +8,7 @@
 #include "main.hpp"
 #include "myImage.hpp"
 
-enum GestureState { IDLE, ONE_FINGER, OTHERS };
+enum GestureState { IDLE, ONE_FINGER, TWO_FINGERS, OTHERS };
 
 using namespace cv;
 using namespace std;
