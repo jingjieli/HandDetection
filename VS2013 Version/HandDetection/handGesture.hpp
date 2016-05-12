@@ -39,6 +39,7 @@ class HandGesture{
 		void getFingerTips(MyImage *m);
 		void drawFingerTips(MyImage *m);
 		vector<Point2f> matchPointsCoordinates;
+		vector<Point2f> secondMatchPtsCoordinates;
 		GestureState state;
 	private:
 		string bool2string(bool tf);

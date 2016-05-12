@@ -73,7 +73,7 @@ bool HandGesture::detectIfHand(){
 		std::cout << "Not hand: bounding box too small." << std::endl;
 		isHand=false;
 	}else if(h/w > 4 || w/h >4){
-		std::cout << "Not hand: bounding box height/width or width/height ratio is irrational." << std::endl;
+		std::cout << "Not hand: bounding box height/width or width/height ratio not in a valid range." << std::endl;
 		isHand=false;	
 	}else if(bRect.x<20){
 		std::cout << "Not hand: bounding box too close to the edge." << std::endl;
@@ -263,7 +263,7 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		d++;	
 	}
 	
-	if(n==0){
+	if (n==0) {
 		// there's only 1 finger
 		fingerTips.push_back(highestP);
 
@@ -339,11 +339,11 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		std::cout << "currFeaturePoints coordinates: " << currFeaturePoints.front().x << " " << currFeaturePoints.front().y << std::endl;
 		currFeaturePoints.clear();*/
 	}
-	else {
+	//else {
 		// it's not 1 finger 
 		// check bounding condition before making a patch image
-		m->fingerTipLoc.x = -1;
-		m->fingerTipLoc.y = -1;
+		//m->fingerTipLoc.x = -1;
+		//m->fingerTipLoc.y = -1;
 		/*if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
 			(m->fingerTipLoc.x + 20) < m->src.rows && (m->fingerTipLoc.y + 20) < m->src.cols) {
 			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
@@ -351,7 +351,7 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
 		}*/
-	}
+	//}
 }
 
 void HandGesture::drawFingerTips(MyImage *m){
@@ -365,7 +365,7 @@ void HandGesture::drawFingerTips(MyImage *m){
 
 	if (fingerTips.size() == 1) {
 		std::cout << "oneFingerCoordinates size: " << oneFingerCoordinates.size() << std::endl;
-		if (oneFingerCoordinates.size() > 2) {
+		if (oneFingerCoordinates.size() >= 2) {
 			for (int i = 0; i < oneFingerCoordinates.size() - 1; i++) {
 				cv::line(m->src, oneFingerCoordinates[i], oneFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
 			}
@@ -376,12 +376,16 @@ void HandGesture::drawFingerTips(MyImage *m){
 		}*/
 	}
 	else if (fingerTips.size() == 2) {
-		for (int i = 0; i < firstFingerCoordinates.size() - 1; i++) {
-			cv::line(m->src, firstFingerCoordinates[i], firstFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+		if (firstFingerCoordinates.size() >= 2) {
+			for (int i = 0; i < firstFingerCoordinates.size() - 1; i++) {
+				cv::line(m->src, firstFingerCoordinates[i], firstFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+			}
 		}
 
-		for (int i = 0; i < secondFingerCoordinates.size() - 1; i++) {
-			cv::line(m->src, secondFingerCoordinates[i], secondFingerCoordinates[i + 1], cv::Scalar(255, 0, 0), 2, 8);
+		if (secondFingerCoordinates.size() >= 2) {
+			for (int i = 0; i < secondFingerCoordinates.size() - 1; i++) {
+				cv::line(m->src, secondFingerCoordinates[i], secondFingerCoordinates[i + 1], cv::Scalar(255, 0, 0), 2, 8);
+			}
 		}
 	}
 }
@@ -406,7 +410,7 @@ void HandGesture::getFingerTips(MyImage *m){
 		i++;
    	}
 
-	if (fingerTips.size() == 2) {
+	if (fingerTips.size() == 2 && state == TWO_FINGERS) {
 		if (firstFingerCoordinates.size() == 30) {
 			firstFingerCoordinates.erase(firstFingerCoordinates.begin());
 		}
@@ -416,8 +420,37 @@ void HandGesture::getFingerTips(MyImage *m){
 		firstFingerCoordinates.push_back(fingerTips[0]);
 		secondFingerCoordinates.push_back(fingerTips[1]);
 		oneFingerCoordinates.clear();
-		//optFlowCoordinates.clear();
-	} else if(fingerTips.size()==0){
+
+		// find the close finger to the previous fingerTipLoc and update
+		float dist1 = sqrt(pow(m->fingerTipLoc.x - fingerTips[0].x, 2) + pow(m->fingerTipLoc.y - fingerTips[0].y, 2));
+		float dist2 = sqrt(pow(m->fingerTipLoc.x - fingerTips[1].x, 2) + pow(m->fingerTipLoc.y - fingerTips[1].y, 2));
+
+		if (dist1 < dist2) {
+			m->fingerTipLoc = fingerTips[0];
+			m->secondTipLoc = fingerTips[1];
+		}
+		else {
+			m->fingerTipLoc = fingerTips[1];
+			m->secondTipLoc = fingerTips[0];
+		}
+
+		// create patch image
+		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
+			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
+			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
+			cv::Mat patchImage = m->src(patchRect);
+			m->patchImg = patchImage;
+			cv::imwrite("..\\images\\patch_image_2fingers_1.jpg", m->patchImg);
+		}
+		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
+			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
+			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
+			cv::Mat patchImage = m->src(patchRect);
+			m->secondPatchImg = patchImage;
+			cv::imwrite("..\\images\\patch_image_2fingers_2.jpg", m->secondPatchImg);
+		}
+
+	} else if (fingerTips.size()==0) {
 		std::cout << "fingerTips.size is zero, call checkForOneFinger..." << std::endl;
 		firstFingerCoordinates.clear();
 		secondFingerCoordinates.clear();
@@ -428,6 +461,48 @@ void HandGesture::getFingerTips(MyImage *m){
 		firstFingerCoordinates.clear();
 		secondFingerCoordinates.clear();
 		oneFingerCoordinates.clear();
-		//optFlowCoordinates.clear();
+		
+		// find the close finger to the previous fingerTipLoc and update
+		std::vector<float> dists(fingerTips.size());
+		std::vector<float> secondDists(fingerTips.size());
+		// calculate the distance for each fingertip
+		for (int i = 0; i < fingerTips.size(); i++) {
+			float dist = sqrt(pow(m->fingerTipLoc.x - fingerTips[i].x, 2) + pow(m->fingerTipLoc.y - fingerTips[i].y, 2));
+			float secondDist = sqrt(pow(m->secondTipLoc.x - fingerTips[i].x, 2) + pow(m->secondTipLoc.y - fingerTips[i].y, 2));
+			dists[i] = dist;
+			secondDists[i] = secondDist;
+		}
+		// get the index of smallest distance
+		int index = 0;
+		int secondIndex = 0;
+		for (int i = 0; i < dists.size(); i++) {
+			if (dists[i] < dists[index]) {
+				index = i;
+			}
+		}
+		for (int i = 0; i < secondDists.size(); i++) {
+			if (secondDists[i] < secondDists[secondIndex]) {
+				secondIndex = i;
+			}
+		}
+		// update with the closest finger 
+		m->fingerTipLoc = fingerTips[index];
+		m->secondTipLoc = fingerTips[secondIndex];
+
+		// create patch image
+		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
+			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
+			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
+			cv::Mat patchImage = m->src(patchRect);
+			m->patchImg = patchImage;
+			cv::imwrite("..\\images\\patch_image_others_1.jpg", m->patchImg);
+		}
+		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
+			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
+			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
+			cv::Mat patchImage = m->src(patchRect);
+			m->secondPatchImg = patchImage;
+			cv::imwrite("..\\images\\patch_image_others_2.jpg", m->secondPatchImg);
+		}
 	}
 }

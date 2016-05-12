@@ -17,7 +17,9 @@ class MyImage{
 		Mat srcPrev; // previous image
 		Mat bw; // binary image
 		Mat patchImg; // patch image
+		Mat secondPatchImg;
 		cv::Point fingerTipLoc;
+		cv::Point secondTipLoc;
 		vector<Mat> bwList;
 		VideoCapture cap;		
 		int cameraSrc; 
