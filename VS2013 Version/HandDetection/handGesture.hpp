@@ -8,6 +8,8 @@
 #include "main.hpp"
 #include "myImage.hpp"
 
+enum GestureState { IDLE, ONE_FINGER, OTHERS };
+
 using namespace cv;
 using namespace std;
 
@@ -36,6 +38,8 @@ class HandGesture{
 		void eleminateDefects(MyImage *m);
 		void getFingerTips(MyImage *m);
 		void drawFingerTips(MyImage *m);
+		vector<Point2f> matchPointsCoordinates;
+		GestureState state;
 	private:
 		string bool2string(bool tf);
 		int fontFace;

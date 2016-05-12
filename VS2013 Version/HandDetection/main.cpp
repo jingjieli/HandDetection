@@ -322,6 +322,7 @@ int main(){
 		std::cout << "Camera is not working as expect." << std::endl;
 	}
 	HandGesture hg;
+	hg.state = IDLE; // initial state is IDLE
 	init(&m);		
 	m.cap >> m.src; // get a new frame from camera
     namedWindow("img1",CV_WINDOW_KEEPRATIO);
@@ -362,11 +363,32 @@ int main(){
 			matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
 			std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
 
+			if (hg.matchPointsCoordinates.size() > 0) {
+				if (sqrt(pow(hg.matchPointsCoordinates.back().x - matchLoc.x, 2) + 
+					pow(hg.matchPointsCoordinates.back().y - matchLoc.y, 2)) < 100) {
+					if (hg.matchPointsCoordinates.size() == 30) {
+						hg.matchPointsCoordinates.erase(hg.matchPointsCoordinates.begin());
+					}
+					hg.matchPointsCoordinates.push_back(matchLoc);
+				}
+				else {
+					hg.matchPointsCoordinates.clear();
+				}
+			}
+			else if (hg.matchPointsCoordinates.size() == 0) {
+				hg.matchPointsCoordinates.push_back(matchLoc);
+			}
+
 			if ((matchLoc.x + m.patchImg.cols) < m.src.cols &&
 				(matchLoc.y + m.patchImg.rows) < m.src.rows) {
 
 				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m.patchImg.cols,
 					matchLoc.y + m.patchImg.rows), cv::Scalar(0, 0, 255), 2, 8, 0);
+				if (hg.matchPointsCoordinates.size() >= 2) {
+					for (int i = 0; i < hg.matchPointsCoordinates.size() - 1; i++) {
+						cv::line(src_copy, hg.matchPointsCoordinates[i], hg.matchPointsCoordinates[i + 1], cv::Scalar(0, 0, 255), 2, 8);
+					}
+				}
 				cv::imshow("img2", src_copy);
 			}
 		}

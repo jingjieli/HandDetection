@@ -261,21 +261,36 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			n++;
 		}
 		d++;	
-	}if(n==0){
+	}
+	
+	if(n==0){
 		// there's only 1 finger
 		fingerTips.push_back(highestP);
-		if (oneFingerCoordinates.size() == 30) {
-			oneFingerCoordinates.erase(oneFingerCoordinates.begin());
-			oneFingerCoordinates.push_back(highestP);
+
+		// check the distance from last fingertip
+		if (oneFingerCoordinates.size() > 0) {
+			if (sqrt(pow(oneFingerCoordinates.back().x - highestP.x, 2) +
+				pow(oneFingerCoordinates.back().y - highestP.y, 2)) < 100) {
+				if (oneFingerCoordinates.size() == 30) {
+					oneFingerCoordinates.erase(oneFingerCoordinates.begin());
+				}
+
+				oneFingerCoordinates.push_back(highestP);
+			}
 		}
-		else {
+		else if (oneFingerCoordinates.size() == 0) {
 			oneFingerCoordinates.push_back(highestP);
 		}
 
-		m->fingerTipLoc = highestP;
+		std::cout << "highestP (1 finger) coordinates: " << highestP.x << " " << highestP.y << std::endl;
 
+		m->fingerTipLoc = highestP; // store finger coordinates
+
+		// check bounding condition before making a patch image 
 		if ((highestP.x - 20) > 0 && 
-			(highestP.y - 20) > 0) {
+			(highestP.y - 20) > 0 &&
+			(highestP.x + 20) < m->src.cols &&
+			(highestP.y + 20) < m->src.rows) { 
 			cv::Rect patchRect(highestP.x - 20, highestP.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			m->patchImg = patchImage;
@@ -323,16 +338,19 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		optFlowCoordinates.push_back(currFeaturePoints.front());
 		std::cout << "currFeaturePoints coordinates: " << currFeaturePoints.front().x << " " << currFeaturePoints.front().y << std::endl;
 		currFeaturePoints.clear();*/
-
-		std::cout << "highestP (1 finger) coordinates: " << highestP.x << " " << highestP.y << std::endl;
 	}
 	else {
-		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0) {
+		// it's not 1 finger 
+		// check bounding condition before making a patch image
+		m->fingerTipLoc.x = -1;
+		m->fingerTipLoc.y = -1;
+		/*if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
+			(m->fingerTipLoc.x + 20) < m->src.rows && (m->fingerTipLoc.y + 20) < m->src.cols) {
 			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
-		}
+		}*/
 	}
 }
 
@@ -347,8 +365,10 @@ void HandGesture::drawFingerTips(MyImage *m){
 
 	if (fingerTips.size() == 1) {
 		std::cout << "oneFingerCoordinates size: " << oneFingerCoordinates.size() << std::endl;
-		for (int i = 0; i < oneFingerCoordinates.size() - 1; i++) {
-			cv::line(m->src, oneFingerCoordinates[i], oneFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+		if (oneFingerCoordinates.size() > 2) {
+			for (int i = 0; i < oneFingerCoordinates.size() - 1; i++) {
+				cv::line(m->src, oneFingerCoordinates[i], oneFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+			}
 		}
 		/*std::cout << "optFlowCoordinates size: " << optFlowCoordinates.size() << std::endl;
 		for (int i = 0; i < optFlowCoordinates.size() - 1; i++) {
