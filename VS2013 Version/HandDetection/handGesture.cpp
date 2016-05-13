@@ -263,7 +263,7 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		d++;	
 	}
 	
-	if (n==0) {
+	if (n == 0) {
 		// there's only 1 finger
 		fingerTips.push_back(highestP);
 
@@ -287,72 +287,17 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		m->fingerTipLoc = highestP; // store finger coordinates
 
 		// check bounding condition before making a patch image 
-		if ((highestP.x - 20) > 0 && 
+		if ((highestP.x - 20) > 0 &&
 			(highestP.y - 10) > 0 &&
 			(highestP.x + 20) < m->src.cols &&
-			(highestP.y + 30) < m->src.rows) { 
+			(highestP.y + 30) < m->src.rows) {
 			cv::Rect patchRect(highestP.x - 20, highestP.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->patchImg);
 			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
 		}
-		
-
-		/*cv::Mat prev_gray, curr_gray;
-		if (oneFingerCoordinates.size() <= 15) {
-			prevFeaturePoints.clear();
-			prevFeaturePoints.push_back(highestP);
-		}
-		prevFeaturePoints.push_back(highestP);
-		std::cout << "prevFeaturePoints coordinates: " << prevFeaturePoints.front().x << " " << prevFeaturePoints.front().y << std::endl;
-		std::vector<uchar> status;
-		std::vector<float> err;
-		cv::Size winSize(51, 51);
-		cv::TermCriteria termcrit(cv::TermCriteria::COUNT | cv::TermCriteria::EPS, 20, 0.03);
-		std::cerr << "m->srcLR channels: " << m->srcLR.channels() << std::endl;
-		std::cerr << "m->srcPrev channels: " << m->srcPrev.channels() << std::endl;
-		if (m->srcPrev.channels() < 3) {
-			if (m->srcPrev.rows > 0 && m->srcPrev.cols > 0) {
-				cv::namedWindow("Previous", WINDOW_AUTOSIZE);
-				cv::imshow("Previous", m->srcPrev);
-			}
-			else {
-				std::cout << "m->srcPrev size: " << m->srcPrev.rows << " " << m->srcPrev.cols << std::endl;
-			}
-		} 
-		if (m->srcLR.channels() < 3) {
-			cv::namedWindow("Current", WINDOW_AUTOSIZE);
-			cv::imshow("Current", m->srcLR);
-		}
-		cv::cvtColor(m->srcLR, curr_gray, CV_BGR2GRAY);
-		cv::cvtColor(m->srcPrev, prev_gray, CV_BGR2GRAY);
-		std::cout << "prevFeaturePoints size: " << prevFeaturePoints.size() << std::endl;
-		cv::calcOpticalFlowPyrLK(prev_gray, curr_gray, prevFeaturePoints, currFeaturePoints, status, err, winSize,
-			3, termcrit, 0, 0.001);
-		std::cout << "currFeaturePoints size: " << currFeaturePoints.size() << std::endl;
-		prevFeaturePoints.clear();
-		prevFeaturePoints.push_back(currFeaturePoints.front());
-		if (optFlowCoordinates.size() == 30) {
-			optFlowCoordinates.erase(optFlowCoordinates.begin());
-		}
-		optFlowCoordinates.push_back(currFeaturePoints.front());
-		std::cout << "currFeaturePoints coordinates: " << currFeaturePoints.front().x << " " << currFeaturePoints.front().y << std::endl;
-		currFeaturePoints.clear();*/
 	}
-	//else {
-		// it's not 1 finger 
-		// check bounding condition before making a patch image
-		//m->fingerTipLoc.x = -1;
-		//m->fingerTipLoc.y = -1;
-		/*if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
-			(m->fingerTipLoc.x + 20) < m->src.rows && (m->fingerTipLoc.y + 20) < m->src.cols) {
-			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
-			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
-			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
-		}*/
-	//}
 }
 
 void HandGesture::drawFingerTips(MyImage *m){
@@ -371,10 +316,6 @@ void HandGesture::drawFingerTips(MyImage *m){
 				cv::line(m->src, oneFingerCoordinates[i], oneFingerCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
 			}
 		}
-		/*std::cout << "optFlowCoordinates size: " << optFlowCoordinates.size() << std::endl;
-		for (int i = 0; i < optFlowCoordinates.size() - 1; i++) {
-			cv::line(m->src, optFlowCoordinates[i], optFlowCoordinates[i + 1], cv::Scalar(0, 0, 255), 2, 8);
-		}*/
 	}
 	else if (fingerTips.size() == 2) {
 		if (firstFingerCoordinates.size() >= 2) {
