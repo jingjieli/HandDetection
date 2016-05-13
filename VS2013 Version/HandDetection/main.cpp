@@ -32,7 +32,7 @@ std::vector <My_ROI> roi;
 std::vector <KalmanFilter> kf;
 std::vector <cv::Mat_<float> > measurement;
 
-int noFingerFrameCounter, oneFingerFrameCounter, twoFingersFrameCounter, othersFrameCounter;
+int noFingerFrameCounter, oneFingerFrameCounter, touchFrameCounter, twoFingersFrameCounter, othersFrameCounter;
 
 /* end global variables */
 
@@ -290,11 +290,12 @@ void makeContours(MyImage *m, HandGesture* hg){
 	cv::pyrUp(m->bw,m->bw);
 	m->bw.copyTo(aBw);
 	cv::findContours(aBw,hg->contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
-	//std::cout << "Current contour size is " << (int)hg->contours.size() << std::endl;
+	std::cout << (int)hg->contours.size() << " contours are found in total." << std::endl;
 	hg->initVectors(); 
 	hg->cIdx=findBiggestContour(hg->contours); // record the biggest contour index in hg->cIdx
-	//std::cout << "biggest contour has a size of " << hg->contours[hg->cIdx].size() << std::endl;
-	if(hg->cIdx!=-1){
+	std::cout << "biggest contour has " << hg->contours[hg->cIdx].size() << " points." << std::endl;
+	// if the biggest contour size is still too small, the it's probably a valid finger
+	if (hg->cIdx != -1 && hg->contours[hg->cIdx].size() > 800) {
         //approxPolyDP( Mat(hg->contours[hg->cIdx]), hg->contours[hg->cIdx], 11, true );
 		// use the biggest contour that has been found
 		hg->bRect=boundingRect(Mat(hg->contours[hg->cIdx])); // get the bounding box of the contour	
@@ -320,14 +321,68 @@ void makeContours(MyImage *m, HandGesture* hg){
 void switchState(HandGesture* hg) {
 	// hand gesture state machine
 	if (hg->fingerTips.size() == 1) {
-		oneFingerFrameCounter++;
-		if (oneFingerFrameCounter >= 8) {
-			// reset other frame counters
-			noFingerFrameCounter = 0;
-			twoFingersFrameCounter = 0;
-			othersFrameCounter = 0;
-			// switch state to ONE_FINGER
-			hg->state = ONE_FINGER;
+		if (hg->state == ONE_FINGER) {
+			// compare the lastest two single finger coordinates and calculate their distance
+			int size = hg->oneFingerCoordinates.size();
+			if (size >= 2) {
+				cv::Point last = hg->oneFingerCoordinates[size - 1];
+				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
+				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
+				// if two locations are close enough, consider the finger is static
+				if (dist < 10) {
+					touchFrameCounter++;
+				}
+				else {
+					oneFingerFrameCounter++;
+				}
+			}
+			if (touchFrameCounter >= 8) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				oneFingerFrameCounter = 0;
+				twoFingersFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch state to TOUCH
+				hg->state = TOUCH;
+			}
+		}
+		else if (hg->state == TOUCH) {
+			// compare the lastest two single finger coordinates and calculate their distance
+			int size = hg->oneFingerCoordinates.size();
+			if (size >= 2) {
+				cv::Point last = hg->oneFingerCoordinates[size - 1];
+				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
+				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
+				// if two locations are close enough, consider the finger is static
+				if (dist < 10) {
+					touchFrameCounter++;
+				}
+				else {
+					oneFingerFrameCounter++;
+				}
+				if (oneFingerFrameCounter >= 5) {
+					// reset other frame counters
+					noFingerFrameCounter = 0;
+					touchFrameCounter = 0;
+					twoFingersFrameCounter = 0;
+					othersFrameCounter = 0;
+					// switch state to ONE_FINGER
+					hg->state = ONE_FINGER;
+				}
+			}
+		}
+		else
+		{
+			oneFingerFrameCounter++;
+			if (oneFingerFrameCounter >= 8) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				touchFrameCounter = 0;
+				twoFingersFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch state to ONE_FINGER
+				hg->state = ONE_FINGER;
+			}
 		}
 	}
 	else if (hg->fingerTips.size() == 0) {
@@ -335,6 +390,8 @@ void switchState(HandGesture* hg) {
 		if (noFingerFrameCounter >= 5) {
 			// reset other frame counters
 			oneFingerFrameCounter = 0;
+			touchFrameCounter = 0;
+			twoFingersFrameCounter = 0;
 			othersFrameCounter = 0;
 			// switch state to IDLE
 			hg->state = IDLE;
@@ -342,10 +399,11 @@ void switchState(HandGesture* hg) {
 	}
 	else if (hg->fingerTips.size() == 2) {
 		twoFingersFrameCounter++;
-		if (twoFingersFrameCounter >= 10 ||
-			(oneFingerFrameCounter >= 5 && twoFingersFrameCounter >= 5)) {
+		if (twoFingersFrameCounter >= 8 ||
+			(oneFingerFrameCounter >= 4 && twoFingersFrameCounter >= 4)) {
 			// reset other frame counters
 			noFingerFrameCounter = 0;
+			touchFrameCounter = 0;
 			oneFingerFrameCounter = 0;
 			othersFrameCounter = 0;
 			// switch state to TWO_FINGERS
@@ -357,7 +415,9 @@ void switchState(HandGesture* hg) {
 		if (othersFrameCounter >= 5) {
 			// reset other frame counters
 			noFingerFrameCounter = 0;
+			touchFrameCounter = 0;
 			oneFingerFrameCounter = 0;
+			twoFingersFrameCounter = 0;
 			// switch state to OTHERS
 			hg->state = OTHERS;
 		}
@@ -366,6 +426,7 @@ void switchState(HandGesture* hg) {
 	std::cout << hg->fingerTips.size() << " finger(s) detected in current frame." << std::endl;
 	std::cout << "noFingerFrameCounter = " << noFingerFrameCounter << std::endl;
 	std::cout << "oneFingerFrameCounter = " << oneFingerFrameCounter << std::endl;
+	std::cout << "touchFrameCounter = " << touchFrameCounter << std::endl;
 	std::cout << "twoFingerFrameCounter = " << twoFingersFrameCounter << std::endl;
 	std::cout << "othersFrameCounter = " << othersFrameCounter << std::endl;
 
@@ -376,6 +437,9 @@ void switchState(HandGesture* hg) {
 		break;
 	case GestureState::ONE_FINGER:
 		std::cout << "Current state is ONE_FINGER." << std::endl;
+		break;
+	case GestureState::TOUCH:
+		std::cout << "Current state is TOUCH." << std::endl;
 		break;
 	case GestureState::TWO_FINGERS:
 		std::cout << "Currnet state is TWO_FINGERS." << std::endl;
@@ -396,57 +460,54 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 	// run patch matching if a patch image is already found
 	if (!m->patchImg.empty()) {
 		cv::imwrite("..\\images\\patch_image_current_1.jpg", m->patchImg);
-		/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
-		cv::Mat imageToCompare = m.src(regionToCompare);*/
 		cv::Mat result; // matrix to store matching result
 		int result_cols = m->src.cols - m->patchImg.cols + 1;
 		int result_rows = m->src.rows - m->patchImg.rows + 1;
-		/*int result_cols = imageToCompare.cols - m.patchImg.cols + 1;
-		int result_rows = imageToCompare.rows - m.patchImg.rows + 1;*/
 		result.create(result_rows, result_cols, CV_32FC1);
 		// do patch matching and normalization
-		//cv::flip(m.patchImg, m.patchImg, 1);
 		cv::matchTemplate(m->src, m->patchImg, result, CV_TM_CCOEFF_NORMED);
-		cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+		//cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
 		// localize the best match with minMaxLoc
 		double minVal, maxVal;
 		cv::Point minLoc, maxLoc, matchLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 		matchLoc = maxLoc;
-		/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
-		matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
 		m->firstMatchLoc = matchLoc;
-		std::cout << "First matching point coordinates: " << matchLoc.x << " " << matchLoc.y << std::endl;
+		std::cout << "First matching point coordinates: " << matchLoc.x << " " << matchLoc.y << " maxVal = " << maxVal << " minVal = " << minVal << std::endl;
 
-		// store matching points 
-		if (hg->matchPointsCoordinates.size() > 0) {
-			if (sqrt(pow(hg->matchPointsCoordinates.back().x - matchLoc.x, 2) +
-				pow(hg->matchPointsCoordinates.back().y - matchLoc.y, 2)) < 50) {
-				if (hg->matchPointsCoordinates.size() == 30) {
-					hg->matchPointsCoordinates.erase(hg->matchPointsCoordinates.begin());
+		// the match is only a valid finger if the maxVal is greater than a threshold
+		if (maxVal >= 0.90) {
+
+			// store matching points 
+			if (hg->matchPointsCoordinates.size() > 0) {
+				if (sqrt(pow(hg->matchPointsCoordinates.back().x - matchLoc.x, 2) +
+					pow(hg->matchPointsCoordinates.back().y - matchLoc.y, 2)) < 50) {
+					if (hg->matchPointsCoordinates.size() == 30) {
+						hg->matchPointsCoordinates.erase(hg->matchPointsCoordinates.begin());
+					}
+					hg->matchPointsCoordinates.push_back(matchLoc);
 				}
-				hg->matchPointsCoordinates.push_back(matchLoc);
+				else {
+					hg->matchPointsCoordinates.clear();
+				}
 			}
 			else {
-				hg->matchPointsCoordinates.clear();
+				hg->matchPointsCoordinates.push_back(matchLoc);
 			}
-		}
-		else {
-			hg->matchPointsCoordinates.push_back(matchLoc);
-		}
 
-		// display matching points and trajectory
-		if ((matchLoc.x + m->patchImg.cols) < m->src.cols &&
-			(matchLoc.y + m->patchImg.rows) < m->src.rows) {
+			// display matching points and trajectory
+			if ((matchLoc.x + m->patchImg.cols) < m->src.cols &&
+				(matchLoc.y + m->patchImg.rows) < m->src.rows) {
 
-			cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->patchImg.cols,
-				matchLoc.y + m->patchImg.rows), cv::Scalar(255, 0, 0), 2, 8, 0);
-			if (hg->matchPointsCoordinates.size() >= 2) {
-				for (int i = 0; i < hg->matchPointsCoordinates.size() - 1; i++) {
-					cv::line(src_copy, hg->matchPointsCoordinates[i], hg->matchPointsCoordinates[i + 1], cv::Scalar(255, 0, 0), 2, 8);
+				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->patchImg.cols,
+					matchLoc.y + m->patchImg.rows), cv::Scalar(255, 0, 0), 2, 8, 0);
+				if (hg->matchPointsCoordinates.size() >= 2) {
+					for (int i = 0; i < hg->matchPointsCoordinates.size() - 1; i++) {
+						cv::line(src_copy, hg->matchPointsCoordinates[i], hg->matchPointsCoordinates[i + 1], cv::Scalar(255, 0, 0), 2, 8);
+					}
 				}
+				//cv::imshow("img2", src_copy);
 			}
-			//cv::imshow("img2", src_copy);
 		}
 	}
 
@@ -458,18 +519,19 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 		int result_rows = m->src.rows - m->secondPatchImg.rows + 1;
 		result.create(result_rows, result_cols, CV_32FC1);
 		cv::matchTemplate(m->src, m->secondPatchImg, result, CV_TM_CCOEFF_NORMED);
-		cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+		//cv::normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
 		// localize the best match with minMaxLoc
 		double minVal, maxVal;
 		cv::Point minLoc, maxLoc, matchLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 		matchLoc = maxLoc;
 		m->secondMatchLoc = matchLoc;
-		std::cout << "Second matching point coordinates: " << matchLoc.x << " " << matchLoc.y << std::endl;
+		std::cout << "Second matching point coordinates: " << matchLoc.x << " " << matchLoc.y << " maxVal = " << maxVal << " minVal = " << minVal << std::endl;
 
 		// if first and second match location are twoo close, same finger is probably detected
 		if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) + 
-			pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 20) {
+			pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 30 &&
+			maxVal >= 0.90) {
 
 			// store matching points 
 			if (hg->secondMatchPtsCoordinates.size() > 0) {
@@ -517,6 +579,7 @@ int main(){
 	hg.state = IDLE; // initial state is IDLE
 	// init frame counters for state machine 
 	oneFingerFrameCounter = 0;
+	touchFrameCounter = 0;
 	twoFingersFrameCounter = 0;
 	noFingerFrameCounter = 0;
 	othersFrameCounter = 0;

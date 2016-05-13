@@ -8,7 +8,7 @@
 #include "main.hpp"
 #include "myImage.hpp"
 
-enum GestureState { IDLE, ONE_FINGER, TWO_FINGERS, OTHERS };
+enum GestureState { IDLE, ONE_FINGER, TOUCH, TWO_FINGERS, OTHERS };
 
 using namespace cv;
 using namespace std;
@@ -38,6 +38,7 @@ class HandGesture{
 		void eleminateDefects(MyImage *m);
 		void getFingerTips(MyImage *m);
 		void drawFingerTips(MyImage *m);
+		vector<Point> oneFingerCoordinates;
 		vector<Point2f> matchPointsCoordinates;
 		vector<Point2f> secondMatchPtsCoordinates;
 		GestureState state;
@@ -48,7 +49,6 @@ class HandGesture{
 		void checkForOneFinger(MyImage *m);
 		float getAngle(Point s,Point f,Point e);	
 		vector<int> fingerNumbers;
-		vector<Point> oneFingerCoordinates;
 		vector<Point> firstFingerCoordinates;
 		vector<Point> secondFingerCoordinates;
 		vector<Point2f> prevFeaturePoints;

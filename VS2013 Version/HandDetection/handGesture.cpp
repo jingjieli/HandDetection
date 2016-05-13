@@ -288,10 +288,10 @@ void HandGesture::checkForOneFinger(MyImage *m){
 
 		// check bounding condition before making a patch image 
 		if ((highestP.x - 20) > 0 && 
-			(highestP.y - 20) > 0 &&
+			(highestP.y - 10) > 0 &&
 			(highestP.x + 20) < m->src.cols &&
-			(highestP.y + 20) < m->src.rows) { 
-			cv::Rect patchRect(highestP.x - 20, highestP.y - 20, 40, 40);
+			(highestP.y + 30) < m->src.rows) { 
+			cv::Rect patchRect(highestP.x - 20, highestP.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->patchImg);
 			//m->patchImg = patchImage;
@@ -436,17 +436,17 @@ void HandGesture::getFingerTips(MyImage *m){
 		}
 
 		// create patch image
-		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
-			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
-			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
+		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 10) > 0 &&
+			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 30) < m->src.rows) {
+			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->patchImg);
 			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_2fingers_1.jpg", m->patchImg);
 		}
-		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
-			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
-			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
+		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 10) > 0 &&
+			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 30) < m->src.rows) {
+			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->secondPatchImg);
 			//m->secondPatchImg = patchImage;
@@ -493,17 +493,17 @@ void HandGesture::getFingerTips(MyImage *m){
 		m->secondTipLoc = fingerTips[secondIndex];
 
 		// create patch image
-		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 20) > 0 &&
-			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
-			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
+		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 10) > 0 &&
+			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 30) < m->src.rows) {
+			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->patchImg);
 			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_others_1.jpg", m->patchImg);
 		}
-		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
-			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
-			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
+		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 10) > 0 &&
+			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 30) < m->src.rows) {
+			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 10, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
 			patchImage.copyTo(m->secondPatchImg);
 			//m->secondPatchImg = patchImage;
