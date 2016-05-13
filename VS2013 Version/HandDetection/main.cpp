@@ -32,7 +32,7 @@ std::vector <My_ROI> roi;
 std::vector <KalmanFilter> kf;
 std::vector <cv::Mat_<float> > measurement;
 
-int noFingerFrameCounter, oneFingerFrameCounter, touchFrameCounter, twoFingersFrameCounter, othersFrameCounter;
+int noFingerFrameCounter, oneFingerFrameCounter, touchFrameCounter, twoFingersFrameCounter, zoomInFrameCounter, zoomOutFrameCounter, othersFrameCounter;
 
 /* end global variables */
 
@@ -316,6 +316,9 @@ void makeContours(MyImage *m, HandGesture* hg){
 			myDrawContours(m,hg);
 		}
 	}
+	else {
+		hg->fingerTips.clear();
+	}
 }
 
 void switchState(HandGesture* hg) {
@@ -341,6 +344,8 @@ void switchState(HandGesture* hg) {
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
 				twoFingersFrameCounter = 0;
+				zoomInFrameCounter = 0;
+				zoomOutFrameCounter = 0;
 				othersFrameCounter = 0;
 				// switch state to TOUCH
 				hg->state = TOUCH;
@@ -365,6 +370,8 @@ void switchState(HandGesture* hg) {
 					noFingerFrameCounter = 0;
 					touchFrameCounter = 0;
 					twoFingersFrameCounter = 0;
+					zoomInFrameCounter = 0;
+					zoomOutFrameCounter = 0;
 					othersFrameCounter = 0;
 					// switch state to ONE_FINGER
 					hg->state = ONE_FINGER;
@@ -379,6 +386,8 @@ void switchState(HandGesture* hg) {
 				noFingerFrameCounter = 0;
 				touchFrameCounter = 0;
 				twoFingersFrameCounter = 0;
+				zoomInFrameCounter = 0;
+				zoomOutFrameCounter = 0;
 				othersFrameCounter = 0;
 				// switch state to ONE_FINGER
 				hg->state = ONE_FINGER;
@@ -387,27 +396,143 @@ void switchState(HandGesture* hg) {
 	}
 	else if (hg->fingerTips.size() == 0) {
 		noFingerFrameCounter++;
-		if (noFingerFrameCounter >= 5) {
+		if (noFingerFrameCounter >= 10) {
 			// reset other frame counters
 			oneFingerFrameCounter = 0;
 			touchFrameCounter = 0;
 			twoFingersFrameCounter = 0;
+			zoomInFrameCounter = 0;
+			zoomOutFrameCounter = 0;
 			othersFrameCounter = 0;
 			// switch state to IDLE
 			hg->state = IDLE;
 		}
 	}
 	else if (hg->fingerTips.size() == 2) {
-		twoFingersFrameCounter++;
-		if (twoFingersFrameCounter >= 8 ||
-			(oneFingerFrameCounter >= 4 && twoFingersFrameCounter >= 4)) {
-			// reset other frame counters
-			noFingerFrameCounter = 0;
-			touchFrameCounter = 0;
-			oneFingerFrameCounter = 0;
-			othersFrameCounter = 0;
-			// switch state to TWO_FINGERS
-			hg->state = TWO_FINGERS;
+
+		// if already in state TWO_FINGERS, evaluate the relative distance between two
+		// fingers to identify gesture pattern
+
+		if (hg->state == TWO_FINGERS) {
+			// get the lastest 2 point
+			/*int size_1 = hg->firstFingerCoordinates.size();
+			int size_2 = hg->secondFingerCoordinates.size();*/
+			int size_1 = hg->matchPointsCoordinates.size();
+			int size_2 = hg->secondMatchPtsCoordinates.size();
+
+			if (size_1 >= 2 && size_2 >= 2) {
+				/*cv::Point firstFingerLast = hg->firstFingerCoordinates[size_1 - 1];
+				cv::Point firstFingerSecondLast = hg->firstFingerCoordinates[size_1 - 2];
+				cv::Point secondFingerLast = hg->secondFingerCoordinates[size_2 - 1];
+				cv::Point secondFingerSecondLast = hg->secondFingerCoordinates[size_2 - 2];*/
+
+				cv::Point firstFingerLast = hg->matchPointsCoordinates[size_1 - 1];
+				cv::Point firstFingerSecondLast = hg->matchPointsCoordinates[size_1 - 2];
+				cv::Point secondFingerLast = hg->secondMatchPtsCoordinates[size_2 - 1];
+				cv::Point secondFingerSecondLast = hg->secondMatchPtsCoordinates[size_2 - 2];
+
+				float lastDist = sqrt(pow(firstFingerLast.x - secondFingerLast.x, 2) + pow(firstFingerLast.y - secondFingerLast.y, 2));
+				float secondLastDist = sqrt(pow(firstFingerSecondLast.x - secondFingerSecondLast.x, 2) + pow(firstFingerSecondLast.y - secondFingerSecondLast.y, 2));
+
+				if (std::abs(lastDist - secondLastDist) >= 8) {
+					// the movement is observable
+					if (lastDist > secondLastDist) {
+						zoomInFrameCounter++;
+					}
+					else {
+						zoomOutFrameCounter++;
+					}
+				}
+				else {
+					twoFingersFrameCounter++;
+				}
+			}
+
+			if (zoomInFrameCounter >= 4) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				oneFingerFrameCounter = 0;
+				touchFrameCounter = 0;
+				twoFingersFrameCounter = 0;
+				zoomOutFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch to state ZOOM_IN
+				hg->state = ZOOM_IN;
+			}
+			else if (zoomOutFrameCounter >= 4) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				oneFingerFrameCounter = 0;
+				touchFrameCounter = 0;
+				twoFingersFrameCounter = 0;
+				zoomInFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch to state ZOOM_OUT
+				hg->state = ZOOM_OUT;
+			}
+		}
+		else if (hg->state == ZOOM_IN || hg->state == ZOOM_OUT) {
+			// get the lastest 2 point
+			/*int size_1 = hg->firstFingerCoordinates.size();
+			int size_2 = hg->secondFingerCoordinates.size();*/
+			int size_1 = hg->matchPointsCoordinates.size();
+			int size_2 = hg->secondMatchPtsCoordinates.size();
+
+			if (size_1 >= 2 && size_2 >= 2) {
+				/*cv::Point firstFingerLast = hg->firstFingerCoordinates[size_1 - 1];
+				cv::Point firstFingerSecondLast = hg->firstFingerCoordinates[size_1 - 2];
+				cv::Point secondFingerLast = hg->secondFingerCoordinates[size_2 - 1];
+				cv::Point secondFingerSecondLast = hg->secondFingerCoordinates[size_2 - 2];*/
+
+				cv::Point firstFingerLast = hg->matchPointsCoordinates[size_1 - 1];
+				cv::Point firstFingerSecondLast = hg->matchPointsCoordinates[size_1 - 2];
+				cv::Point secondFingerLast = hg->secondMatchPtsCoordinates[size_2 - 1];
+				cv::Point secondFingerSecondLast = hg->secondMatchPtsCoordinates[size_2 - 2];
+
+				float lastDist = sqrt(pow(firstFingerLast.x - secondFingerLast.x, 2) + pow(firstFingerLast.y - secondFingerLast.y, 2));
+				float secondLastDist = sqrt(pow(firstFingerSecondLast.x - secondFingerSecondLast.x, 2) + pow(firstFingerSecondLast.y - secondFingerSecondLast.y, 2));
+
+				if (std::abs(lastDist - secondLastDist) >= 8) {
+					// the movement is observable
+					if (lastDist > secondLastDist) {
+						zoomInFrameCounter++;
+					}
+					else {
+						zoomOutFrameCounter++;
+					}
+				}
+				else {
+					twoFingersFrameCounter++;
+				}
+			}
+
+			if (twoFingersFrameCounter >= 4) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				oneFingerFrameCounter = 0;
+				touchFrameCounter = 0;
+				zoomInFrameCounter = 0;
+				zoomOutFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch to state TWO_FINGERS
+				hg->state = TWO_FINGERS;
+			}
+		}
+		else {
+			twoFingersFrameCounter++;
+			if (twoFingersFrameCounter >= 8 ||
+				(oneFingerFrameCounter >= 4 && twoFingersFrameCounter >= 4) ||
+				(touchFrameCounter >= 4 && twoFingersFrameCounter >= 4)) {
+				// reset other frame counters
+				noFingerFrameCounter = 0;
+				touchFrameCounter = 0;
+				zoomInFrameCounter = 0;
+				zoomOutFrameCounter = 0;
+				oneFingerFrameCounter = 0;
+				othersFrameCounter = 0;
+				// switch state to TWO_FINGERS
+				hg->state = TWO_FINGERS;
+			}
 		}
 	}
 	else {
@@ -418,6 +543,8 @@ void switchState(HandGesture* hg) {
 			touchFrameCounter = 0;
 			oneFingerFrameCounter = 0;
 			twoFingersFrameCounter = 0;
+			zoomInFrameCounter = 0;
+			zoomOutFrameCounter = 0;
 			// switch state to OTHERS
 			hg->state = OTHERS;
 		}
@@ -428,6 +555,8 @@ void switchState(HandGesture* hg) {
 	std::cout << "oneFingerFrameCounter = " << oneFingerFrameCounter << std::endl;
 	std::cout << "touchFrameCounter = " << touchFrameCounter << std::endl;
 	std::cout << "twoFingerFrameCounter = " << twoFingersFrameCounter << std::endl;
+	std::cout << "zoomInFrameCounter = " << zoomInFrameCounter << std::endl;
+	std::cout << "zoomOutFrameCounter = " << zoomOutFrameCounter << std::endl;
 	std::cout << "othersFrameCounter = " << othersFrameCounter << std::endl;
 
 	switch (hg->state)
@@ -443,6 +572,12 @@ void switchState(HandGesture* hg) {
 		break;
 	case GestureState::TWO_FINGERS:
 		std::cout << "Currnet state is TWO_FINGERS." << std::endl;
+		break;
+	case GestureState::ZOOM_IN:
+		std::cout << "Current state is ZOOM_IN." << std::endl;
+		break;
+	case GestureState::ZOOM_OUT:
+		std::cout << "Current state is ZOOM_OUT." << std::endl;
 		break;
 	case GestureState::OTHERS:
 		std::cout << "Current state is OTHERS." << std::endl;
@@ -581,6 +716,8 @@ int main(){
 	oneFingerFrameCounter = 0;
 	touchFrameCounter = 0;
 	twoFingersFrameCounter = 0;
+	zoomInFrameCounter = 0;
+	zoomOutFrameCounter = 0;
 	noFingerFrameCounter = 0;
 	othersFrameCounter = 0;
 
