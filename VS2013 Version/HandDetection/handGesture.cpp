@@ -249,14 +249,14 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		// find the point with minimum y value and assign to highestP
 		if(v.y<highestP.y){
 			highestP=v;
-			std::cout << "highestP.y = " << highestP.y << std::endl;
+			//std::cout << "highestP.y = " << highestP.y << std::endl;
 		}
 		d++;	
 	}int n=0;
 	d=hullP[cIdx].begin();
 	while( d!=hullP[cIdx].end() ) {
    	    Point v=(*d);
-			std::cout<<"v.x " << v.x << " v.y "<<  v.y << " highestP.y " << highestP.y<< " ytol "<<yTol<<std::endl;
+			//std::cout<<"v.x " << v.x << " v.y "<<  v.y << " highestP.y " << highestP.y<< " ytol "<<yTol<<std::endl;
 		if(v.y<highestP.y+yTol && v.y!=highestP.y && v.x!=highestP.x){
 			n++;
 		}
@@ -293,7 +293,8 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			(highestP.y + 20) < m->src.rows) { 
 			cv::Rect patchRect(highestP.x - 20, highestP.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
+			patchImage.copyTo(m->patchImg);
+			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
 		}
 		
@@ -401,11 +402,11 @@ void HandGesture::getFingerTips(MyImage *m){
   	    int faridx=v[2]; Point ptFar(contours[cIdx][faridx] );
 		if(i==0){
 			fingerTips.push_back(ptStart);
-			std::cout << "ptStart coordinates: " << ptStart.x << " " << ptStart.y << std::endl;
+			//std::cout << "ptStart coordinates: " << ptStart.x << " " << ptStart.y << std::endl;
 			i++;
 		}
 		fingerTips.push_back(ptEnd);
-		std::cout << "ptEnd coordinates: " << ptEnd.x << " " << ptEnd.y << std::endl;
+		//std::cout << "ptEnd coordinates: " << ptEnd.x << " " << ptEnd.y << std::endl;
 		d++;
 		i++;
    	}
@@ -439,14 +440,16 @@ void HandGesture::getFingerTips(MyImage *m){
 			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
 			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
+			patchImage.copyTo(m->patchImg);
+			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_2fingers_1.jpg", m->patchImg);
 		}
 		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
 			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
 			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
-			m->secondPatchImg = patchImage;
+			patchImage.copyTo(m->secondPatchImg);
+			//m->secondPatchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_2fingers_2.jpg", m->secondPatchImg);
 		}
 
@@ -494,14 +497,16 @@ void HandGesture::getFingerTips(MyImage *m){
 			(m->fingerTipLoc.x + 20) < m->src.cols && (m->fingerTipLoc.y + 20) < m->src.rows) {
 			cv::Rect patchRect(m->fingerTipLoc.x - 20, m->fingerTipLoc.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
-			m->patchImg = patchImage;
+			patchImage.copyTo(m->patchImg);
+			//m->patchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_others_1.jpg", m->patchImg);
 		}
 		if ((m->secondTipLoc.x - 20) > 0 && (m->secondTipLoc.y - 20) > 0 &&
 			(m->secondTipLoc.x + 20) < m->src.cols && (m->secondTipLoc.y + 20) < m->src.rows) {
 			cv::Rect patchRect(m->secondTipLoc.x - 20, m->secondTipLoc.y - 20, 40, 40);
 			cv::Mat patchImage = m->src(patchRect);
-			m->secondPatchImg = patchImage;
+			patchImage.copyTo(m->secondPatchImg);
+			//m->secondPatchImg = patchImage;
 			cv::imwrite("..\\images\\patch_image_others_2.jpg", m->secondPatchImg);
 		}
 	}

@@ -20,6 +20,8 @@ class MyImage{
 		Mat secondPatchImg;
 		cv::Point fingerTipLoc;
 		cv::Point secondTipLoc;
+		cv::Point2f firstMatchLoc;
+		cv::Point2f secondMatchLoc;
 		vector<Mat> bwList;
 		VideoCapture cap;		
 		int cameraSrc; 

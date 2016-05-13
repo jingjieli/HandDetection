@@ -290,10 +290,10 @@ void makeContours(MyImage *m, HandGesture* hg){
 	cv::pyrUp(m->bw,m->bw);
 	m->bw.copyTo(aBw);
 	cv::findContours(aBw,hg->contours,CV_RETR_EXTERNAL,CV_CHAIN_APPROX_NONE);
-	std::cout << "Current contour size is " << (int)hg->contours.size() << std::endl;
+	//std::cout << "Current contour size is " << (int)hg->contours.size() << std::endl;
 	hg->initVectors(); 
 	hg->cIdx=findBiggestContour(hg->contours); // record the biggest contour index in hg->cIdx
-	std::cout << "biggest contour has a size of " << hg->contours[hg->cIdx].size() << std::endl;
+	//std::cout << "biggest contour has a size of " << hg->contours[hg->cIdx].size() << std::endl;
 	if(hg->cIdx!=-1){
         //approxPolyDP( Mat(hg->contours[hg->cIdx]), hg->contours[hg->cIdx], 11, true );
 		// use the biggest contour that has been found
@@ -394,7 +394,7 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 	m->src.copyTo(src_copy);
 
 	// run patch matching if a patch image is already found
-	if (!m->patchImg.empty() && hg->state != IDLE) {
+	if (!m->patchImg.empty()) {
 		cv::imwrite("..\\images\\patch_image_current_1.jpg", m->patchImg);
 		/*cv::Rect regionToCompare(m.fingerTipLoc.x - 20, m.fingerTipLoc.y - 20, 80, 80);
 		cv::Mat imageToCompare = m.src(regionToCompare);*/
@@ -415,7 +415,8 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 		matchLoc = maxLoc;
 		/*matchLoc.x = m.fingerTipLoc.x - 100 + matchLoc.x;
 		matchLoc.y = m.fingerTipLoc.y - 100 + matchLoc.y;*/
-		std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
+		m->firstMatchLoc = matchLoc;
+		std::cout << "First matching point coordinates: " << matchLoc.x << " " << matchLoc.y << std::endl;
 
 		// store matching points 
 		if (hg->matchPointsCoordinates.size() > 0) {
@@ -450,7 +451,7 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 	}
 
 	// run patch matching on second patch image
-	if (!m->secondPatchImg.empty() && hg->state != IDLE && hg->state != ONE_FINGER) {
+	if (!m->secondPatchImg.empty()) {
 		cv::imwrite("..\\images\\patch_image_current_2.jpg", m->secondPatchImg);
 		cv::Mat result; // matrix to store matching result
 		int result_cols = m->src.cols - m->secondPatchImg.cols + 1;
@@ -463,37 +464,43 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 		cv::Point minLoc, maxLoc, matchLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
 		matchLoc = maxLoc;
-		std::cout << matchLoc.x << " " << matchLoc.y << std::endl;
+		m->secondMatchLoc = matchLoc;
+		std::cout << "Second matching point coordinates: " << matchLoc.x << " " << matchLoc.y << std::endl;
 
-		// store matching points 
-		if (hg->secondMatchPtsCoordinates.size() > 0) {
-			if (sqrt(pow(hg->secondMatchPtsCoordinates.back().x - matchLoc.x, 2) +
-				pow(hg->secondMatchPtsCoordinates.back().y - matchLoc.y, 2)) < 50) {
-				if (hg->secondMatchPtsCoordinates.size() == 30) {
-					hg->secondMatchPtsCoordinates.erase(hg->secondMatchPtsCoordinates.begin());
+		// if first and second match location are twoo close, same finger is probably detected
+		if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) + 
+			pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 20) {
+
+			// store matching points 
+			if (hg->secondMatchPtsCoordinates.size() > 0) {
+				if (sqrt(pow(hg->secondMatchPtsCoordinates.back().x - matchLoc.x, 2) +
+					pow(hg->secondMatchPtsCoordinates.back().y - matchLoc.y, 2)) < 50) {
+					if (hg->secondMatchPtsCoordinates.size() == 30) {
+						hg->secondMatchPtsCoordinates.erase(hg->secondMatchPtsCoordinates.begin());
+					}
+					hg->secondMatchPtsCoordinates.push_back(matchLoc);
 				}
-				hg->secondMatchPtsCoordinates.push_back(matchLoc);
+				else {
+					hg->secondMatchPtsCoordinates.clear();
+				}
 			}
 			else {
-				hg->secondMatchPtsCoordinates.clear();
+				hg->secondMatchPtsCoordinates.push_back(matchLoc);
 			}
-		}
-		else {
-			hg->secondMatchPtsCoordinates.push_back(matchLoc);
-		}
 
-		// display matching points and trajectory
-		if ((matchLoc.x + m->secondPatchImg.cols) < m->src.cols &&
-			(matchLoc.y + m->secondPatchImg.rows) < m->src.rows) {
+			// display matching points and trajectory
+			if ((matchLoc.x + m->secondPatchImg.cols) < m->src.cols &&
+				(matchLoc.y + m->secondPatchImg.rows) < m->src.rows) {
 
-			cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->secondPatchImg.cols,
-				matchLoc.y + m->secondPatchImg.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
-			if (hg->secondMatchPtsCoordinates.size() >= 2) {
-				for (int i = 0; i < hg->secondMatchPtsCoordinates.size() - 1; i++) {
-					cv::line(src_copy, hg->secondMatchPtsCoordinates[i], hg->secondMatchPtsCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->secondPatchImg.cols,
+					matchLoc.y + m->secondPatchImg.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
+				if (hg->secondMatchPtsCoordinates.size() >= 2) {
+					for (int i = 0; i < hg->secondMatchPtsCoordinates.size() - 1; i++) {
+						cv::line(src_copy, hg->secondMatchPtsCoordinates[i], hg->secondMatchPtsCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+					}
 				}
+				//cv::imshow("img2", src_copy);
 			}
-			//cv::imshow("img2", src_copy);
 		}
 	}
 	cv::imshow("img2", src_copy);
