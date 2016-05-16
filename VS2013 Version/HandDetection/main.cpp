@@ -320,6 +320,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 	}
 	else {
 		hg->fingerTips.clear();
+		hg->printGestureInfo(m->src);
 	}
 }
 
@@ -341,7 +342,7 @@ void switchState(HandGesture* hg) {
 					oneFingerFrameCounter++;
 				}
 			}
-			if (touchFrameCounter >= 8) {
+			if (touchFrameCounter >= 5) {
 				// reset other frame counters
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
@@ -362,10 +363,10 @@ void switchState(HandGesture* hg) {
 				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
 				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
 				// if two locations are close enough, consider the finger is static
-				if (dist < 8) {
+				if (dist < 10) {
 					touchFrameCounter++;
 				}
-				else if (dist >= 8 && dist <= 100) {
+				else if (dist >= 10 && dist <= 100) {
 					panFrameCounter++;
 				}
 				else {
@@ -405,10 +406,10 @@ void switchState(HandGesture* hg) {
 				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
 				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
 				// if two locations are close enough, consider the finger is static
-				if (dist < 8) {
+				if (dist < 10) {
 					touchFrameCounter++;
 				}
-				else if (dist >= 8 && dist <= 100) {
+				else if (dist >= 10 && dist <= 100) {
 					panFrameCounter++;
 				}
 				else {

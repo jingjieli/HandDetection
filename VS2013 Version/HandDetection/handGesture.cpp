@@ -43,9 +43,12 @@ string HandGesture::intToString(int number){
 
 void HandGesture::printGestureInfo(Mat src){
 	int fontFace = FONT_HERSHEY_PLAIN;
-	Scalar fColor(245,200,200);
-	int xpos=src.cols/1.5;
-	int ypos=src.rows/1.6;
+	//Scalar fColor(245,200,200);
+	cv::Scalar fColor(0, 0, 255);
+	//int xpos=src.cols/1.5;
+	int xpos = src.cols / 1.6;
+	//int ypos=src.rows/1.6;
+	int ypos = src.rows / 1.4;
 	float fontSize=0.7f;
 	int lineChange=14;
 	string info= "Figure info:";
@@ -59,6 +62,40 @@ void HandGesture::printGestureInfo(Mat src){
 	xpos+=lineChange;
 	info=string("Is hand: ") + string(bool2string(isHand));
 	putText(src,info,Point(ypos,xpos),fontFace,fontSize  ,fColor);
+	xpos += lineChange;
+	std::string currState;
+	switch (state)
+	{
+	case GestureState::IDLE:
+		currState = "IDLE";
+		break;
+	case GestureState::ONE_FINGER:
+		currState = "ONE_FINGER";
+		break;
+	case GestureState::TOUCH:
+		currState = "TOUCH";
+		break;
+	case GestureState::PANNING:
+		currState = "PANNING";
+		break;
+	case GestureState::TWO_FINGERS:
+		currState = "TWO_FINGERS";
+		break;
+	case GestureState::ZOOM_IN:
+		currState = "ZOOM_IN";
+		break;
+	case GestureState::ZOOM_OUT:
+		currState = "ZOOM_OUT";
+		break;
+	case GestureState::OTHERS:
+		currState = "OTHERS";
+		break;
+	default:
+		currState = "UNKNOWN";
+		break;
+	}
+	info = std::string("Current state is: ") + currState;
+	putText(src, info, Point(ypos, xpos), fontFace, fontSize, fColor);
 }
 
 bool HandGesture::detectIfHand(){
