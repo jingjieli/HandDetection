@@ -267,6 +267,10 @@ void HandGesture::checkForOneFinger(MyImage *m){
 		// there's only 1 finger
 		fingerTips.push_back(highestP);
 
+		if (prevState != state) {
+			oneFingerCoordinates.clear();
+		}
+
 		// check the distance from last fingertip
 		if (oneFingerCoordinates.size() > 0) {
 			if (sqrt(pow(oneFingerCoordinates.back().x - highestP.x, 2) +
@@ -278,7 +282,7 @@ void HandGesture::checkForOneFinger(MyImage *m){
 				oneFingerCoordinates.push_back(highestP);
 			}
 		}
-		else if (oneFingerCoordinates.size() == 0) {
+		else {
 			oneFingerCoordinates.push_back(highestP);
 		}
 
@@ -352,7 +356,13 @@ void HandGesture::getFingerTips(MyImage *m){
 		i++;
    	}
 
-	if (fingerTips.size() == 2 && state == TWO_FINGERS) {
+	if (fingerTips.size() == 2) {
+
+		if (prevState != state) {
+			firstFingerCoordinates.clear();
+			secondFingerCoordinates.clear();
+		}
+
 		if (firstFingerCoordinates.size() == 30) {
 			firstFingerCoordinates.erase(firstFingerCoordinates.begin());
 		}

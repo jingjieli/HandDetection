@@ -10,6 +10,7 @@
 #include "handGesture.hpp"
 #include <vector>
 #include <cmath>
+#include <ctime>
 #include "main.hpp"
 
 //using namespace cv;
@@ -32,7 +33,8 @@ std::vector <My_ROI> roi;
 std::vector <KalmanFilter> kf;
 std::vector <cv::Mat_<float> > measurement;
 
-int noFingerFrameCounter, oneFingerFrameCounter, touchFrameCounter, twoFingersFrameCounter, zoomInFrameCounter, zoomOutFrameCounter, othersFrameCounter;
+int noFingerFrameCounter, oneFingerFrameCounter, touchFrameCounter, twoFingersFrameCounter, zoomInFrameCounter, 
+	zoomOutFrameCounter, panFrameCounter, othersFrameCounter;
 
 /* end global variables */
 
@@ -332,7 +334,7 @@ void switchState(HandGesture* hg) {
 				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
 				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
 				// if two locations are close enough, consider the finger is static
-				if (dist < 10) {
+				if (dist < 8) {
 					touchFrameCounter++;
 				}
 				else {
@@ -343,6 +345,7 @@ void switchState(HandGesture* hg) {
 				// reset other frame counters
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
+				panFrameCounter = 0;
 				twoFingersFrameCounter = 0;
 				zoomInFrameCounter = 0;
 				zoomOutFrameCounter = 0;
@@ -359,16 +362,76 @@ void switchState(HandGesture* hg) {
 				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
 				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
 				// if two locations are close enough, consider the finger is static
-				if (dist < 10) {
+				if (dist < 8) {
 					touchFrameCounter++;
+				}
+				else if (dist >= 8 && dist <= 100) {
+					panFrameCounter++;
 				}
 				else {
 					oneFingerFrameCounter++;
 				}
-				if (oneFingerFrameCounter >= 5) {
+
+				if (panFrameCounter >= 5) {
+					// reste other frame counters
+					noFingerFrameCounter = 0;
+					oneFingerFrameCounter = 0;
+					touchFrameCounter = 0;
+					twoFingersFrameCounter = 0;
+					zoomInFrameCounter = 0;
+					zoomOutFrameCounter = 0;
+					othersFrameCounter = 0;
+					// switch state to PANNING
+					hg->state = PANNING;
+				} else if (oneFingerFrameCounter >= 5) {
 					// reset other frame counters
 					noFingerFrameCounter = 0;
 					touchFrameCounter = 0;
+					panFrameCounter = 0;
+					twoFingersFrameCounter = 0;
+					zoomInFrameCounter = 0;
+					zoomOutFrameCounter = 0;
+					othersFrameCounter = 0;
+					// switch state to ONE_FINGER
+					hg->state = ONE_FINGER;
+				}
+			}
+		}
+		else if (hg->state == PANNING) {
+			// compare the lastest two single finger coordinates and calculate their distance
+			int size = hg->oneFingerCoordinates.size();
+			if (size >= 2) {
+				cv::Point last = hg->oneFingerCoordinates[size - 1];
+				cv::Point secondLast = hg->oneFingerCoordinates[size - 2];
+				float dist = sqrt(pow(last.x - secondLast.x, 2) + pow(last.y - secondLast.y, 2));
+				// if two locations are close enough, consider the finger is static
+				if (dist < 8) {
+					touchFrameCounter++;
+				}
+				else if (dist >= 8 && dist <= 100) {
+					panFrameCounter++;
+				}
+				else {
+					oneFingerFrameCounter++;
+				}
+
+				if (touchFrameCounter >= 8) {
+					// reset other frame counters
+					noFingerFrameCounter = 0;
+					oneFingerFrameCounter = 0;
+					panFrameCounter = 0;
+					twoFingersFrameCounter = 0;
+					zoomInFrameCounter = 0;
+					zoomOutFrameCounter = 0;
+					othersFrameCounter = 0;
+					// switch state to TOUCH 
+					hg->state = TOUCH;
+				}
+				else if (oneFingerFrameCounter >= 8) {
+					// reset other frame counters
+					noFingerFrameCounter = 0;
+					touchFrameCounter = 0;
+					panFrameCounter = 0;
 					twoFingersFrameCounter = 0;
 					zoomInFrameCounter = 0;
 					zoomOutFrameCounter = 0;
@@ -385,6 +448,7 @@ void switchState(HandGesture* hg) {
 				// reset other frame counters
 				noFingerFrameCounter = 0;
 				touchFrameCounter = 0;
+				panFrameCounter = 0;
 				twoFingersFrameCounter = 0;
 				zoomInFrameCounter = 0;
 				zoomOutFrameCounter = 0;
@@ -399,6 +463,7 @@ void switchState(HandGesture* hg) {
 		if (noFingerFrameCounter >= 10) {
 			// reset other frame counters
 			oneFingerFrameCounter = 0;
+			panFrameCounter = 0;
 			touchFrameCounter = 0;
 			twoFingersFrameCounter = 0;
 			zoomInFrameCounter = 0;
@@ -452,6 +517,7 @@ void switchState(HandGesture* hg) {
 				// reset other frame counters
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
+				panFrameCounter = 0;
 				touchFrameCounter = 0;
 				twoFingersFrameCounter = 0;
 				zoomOutFrameCounter = 0;
@@ -464,6 +530,7 @@ void switchState(HandGesture* hg) {
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
 				touchFrameCounter = 0;
+				panFrameCounter = 0;
 				twoFingersFrameCounter = 0;
 				zoomInFrameCounter = 0;
 				othersFrameCounter = 0;
@@ -511,6 +578,7 @@ void switchState(HandGesture* hg) {
 				noFingerFrameCounter = 0;
 				oneFingerFrameCounter = 0;
 				touchFrameCounter = 0;
+				panFrameCounter = 0;
 				zoomInFrameCounter = 0;
 				zoomOutFrameCounter = 0;
 				othersFrameCounter = 0;
@@ -526,6 +594,7 @@ void switchState(HandGesture* hg) {
 				// reset other frame counters
 				noFingerFrameCounter = 0;
 				touchFrameCounter = 0;
+				panFrameCounter = 0;
 				zoomInFrameCounter = 0;
 				zoomOutFrameCounter = 0;
 				oneFingerFrameCounter = 0;
@@ -541,6 +610,7 @@ void switchState(HandGesture* hg) {
 			// reset other frame counters
 			noFingerFrameCounter = 0;
 			touchFrameCounter = 0;
+			panFrameCounter = 0;
 			oneFingerFrameCounter = 0;
 			twoFingersFrameCounter = 0;
 			zoomInFrameCounter = 0;
@@ -554,6 +624,7 @@ void switchState(HandGesture* hg) {
 	std::cout << "noFingerFrameCounter = " << noFingerFrameCounter << std::endl;
 	std::cout << "oneFingerFrameCounter = " << oneFingerFrameCounter << std::endl;
 	std::cout << "touchFrameCounter = " << touchFrameCounter << std::endl;
+	std::cout << "panFrameCounter = " << panFrameCounter << std::endl;
 	std::cout << "twoFingerFrameCounter = " << twoFingersFrameCounter << std::endl;
 	std::cout << "zoomInFrameCounter = " << zoomInFrameCounter << std::endl;
 	std::cout << "zoomOutFrameCounter = " << zoomOutFrameCounter << std::endl;
@@ -569,6 +640,9 @@ void switchState(HandGesture* hg) {
 		break;
 	case GestureState::TOUCH:
 		std::cout << "Current state is TOUCH." << std::endl;
+		break;
+	case GestureState::PANNING:
+		std::cout << "Current state is PANNING." << std::endl;
 		break;
 	case GestureState::TWO_FINGERS:
 		std::cout << "Currnet state is TWO_FINGERS." << std::endl;
@@ -613,16 +687,22 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 		// the match is only a valid finger if the maxVal is greater than a threshold
 		if (maxVal >= 0.90) {
 
+			// clear path if state has been switched
+			if (hg->prevState != hg->state) {
+				hg->matchPointsCoordinates.clear();
+			}
+
 			// store matching points 
 			if (hg->matchPointsCoordinates.size() > 0) {
 				if (sqrt(pow(hg->matchPointsCoordinates.back().x - matchLoc.x, 2) +
-					pow(hg->matchPointsCoordinates.back().y - matchLoc.y, 2)) < 50) {
+					pow(hg->matchPointsCoordinates.back().y - matchLoc.y, 2)) < 100) {
 					if (hg->matchPointsCoordinates.size() == 30) {
 						hg->matchPointsCoordinates.erase(hg->matchPointsCoordinates.begin());
 					}
 					hg->matchPointsCoordinates.push_back(matchLoc);
 				}
 				else {
+					// assume new point is found if the distance is too far
 					hg->matchPointsCoordinates.clear();
 				}
 			}
@@ -643,6 +723,9 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 				}
 				//cv::imshow("img2", src_copy);
 			}
+		}
+		else {
+			cv::circle(src_copy, m->firstMatchLoc, 5, cv::Scalar(0, 255, 255), 2, 8, 0);
 		}
 	}
 
@@ -668,10 +751,15 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 			pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 30 &&
 			maxVal >= 0.90) {
 
+			// clear path if state has been switched
+			if (hg->prevState != hg->state) {
+				hg->secondMatchPtsCoordinates.clear();
+			}
+
 			// store matching points 
 			if (hg->secondMatchPtsCoordinates.size() > 0) {
 				if (sqrt(pow(hg->secondMatchPtsCoordinates.back().x - matchLoc.x, 2) +
-					pow(hg->secondMatchPtsCoordinates.back().y - matchLoc.y, 2)) < 50) {
+					pow(hg->secondMatchPtsCoordinates.back().y - matchLoc.y, 2)) < 100) {
 					if (hg->secondMatchPtsCoordinates.size() == 30) {
 						hg->secondMatchPtsCoordinates.erase(hg->secondMatchPtsCoordinates.begin());
 					}
@@ -699,6 +787,9 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 				//cv::imshow("img2", src_copy);
 			}
 		}
+		else {
+			cv::circle(src_copy, m->secondMatchLoc, 5, cv::Scalar(0, 0, 255), 2, 8, 0);
+		}
 	}
 	cv::imshow("img2", src_copy);
 }
@@ -714,6 +805,7 @@ int main(){
 	hg.state = IDLE; // initial state is IDLE
 	// init frame counters for state machine 
 	oneFingerFrameCounter = 0;
+	panFrameCounter = 0;
 	touchFrameCounter = 0;
 	twoFingersFrameCounter = 0;
 	zoomInFrameCounter = 0;
@@ -746,6 +838,7 @@ int main(){
 		makeContours(&m, &hg);
 		hg.getFingerNumber(&m);
 
+		hg.prevState = hg.state; // store current state info before switching
 		switchState(&hg); // update state with detected finger(s)
 
 		showWindows(m);

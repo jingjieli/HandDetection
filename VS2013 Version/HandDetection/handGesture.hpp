@@ -8,7 +8,7 @@
 #include "main.hpp"
 #include "myImage.hpp"
 
-enum GestureState { IDLE, ONE_FINGER, TOUCH, TWO_FINGERS, ZOOM_IN, ZOOM_OUT, OTHERS };
+enum GestureState { IDLE, ONE_FINGER, TOUCH, TWO_FINGERS, ZOOM_IN, ZOOM_OUT, PANNING, OTHERS };
 
 using namespace cv;
 using namespace std;
@@ -44,6 +44,7 @@ class HandGesture{
 		vector<Point2f> matchPointsCoordinates;
 		vector<Point2f> secondMatchPtsCoordinates;
 		GestureState state;
+		GestureState prevState;
 	private:
 		string bool2string(bool tf);
 		int fontFace;
