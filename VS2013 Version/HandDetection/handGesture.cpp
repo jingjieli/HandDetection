@@ -11,34 +11,34 @@ using namespace cv;
 using namespace std;
 
 HandGesture::HandGesture(){
-	frameNumber=0;
-	nrNoFinger=0;
+	frameNumber = 0;
+	nrNoFinger = 0;
 	fontFace = FONT_HERSHEY_PLAIN;
 }
 
 void HandGesture::initVectors(){
-	hullI=vector<vector<int> >(contours.size());
-	hullP=vector<vector<Point> >(contours.size());
-	defects=vector<vector<Vec4i> > (contours.size());	
+	hullI = vector<vector<int> >(contours.size());
+	hullP = vector<vector<Point> >(contours.size());
+	defects = vector<vector<Vec4i> >(contours.size());
 }
 
 void HandGesture::analyzeContours(){
-	bRect_height=bRect.height;
-	bRect_width=bRect.width;
+	bRect_height = bRect.height;
+	bRect_width = bRect.width;
 }
 
 string HandGesture::bool2string(bool tf){
-	if(tf)
+	if (tf)
 		return "true";
 	else
 		return "false";
 }
 
 string HandGesture::intToString(int number){
-		stringstream ss;
-		ss << number;
-		string str = ss.str();
-		return str;
+	stringstream ss;
+	ss << number;
+	string str = ss.str();
+	return str;
 }
 
 void HandGesture::printGestureInfo(Mat src){
@@ -49,19 +49,19 @@ void HandGesture::printGestureInfo(Mat src){
 	int xpos = src.cols / 1.6;
 	//int ypos=src.rows/1.6;
 	int ypos = src.rows / 1.4;
-	float fontSize=0.7f;
-	int lineChange=14;
-	string info= "Figure info:";
-	putText(src,info,Point(ypos,xpos),fontFace,fontSize,fColor);
-	xpos+=lineChange;
-	info=string("Number of defects: ") + string(intToString(nrOfDefects)) ;
-	putText(src,info,Point(ypos,xpos),fontFace,fontSize  ,fColor);
-	xpos+=lineChange;
-	info=string("bounding box height, width ") + string(intToString(bRect_height)) + string(" , ") +  string(intToString(bRect_width)) ;
-	putText(src,info,Point(ypos,xpos),fontFace,fontSize ,fColor);
-	xpos+=lineChange;
-	info=string("Is hand: ") + string(bool2string(isHand));
-	putText(src,info,Point(ypos,xpos),fontFace,fontSize  ,fColor);
+	float fontSize = 0.7f;
+	int lineChange = 14;
+	string info = "Figure info:";
+	putText(src, info, Point(ypos, xpos), fontFace, fontSize, fColor);
+	xpos += lineChange;
+	info = string("Number of defects: ") + string(intToString(nrOfDefects));
+	putText(src, info, Point(ypos, xpos), fontFace, fontSize, fColor);
+	xpos += lineChange;
+	info = string("bounding box height, width ") + string(intToString(bRect_height)) + string(" , ") + string(intToString(bRect_width));
+	putText(src, info, Point(ypos, xpos), fontFace, fontSize, fColor);
+	xpos += lineChange;
+	info = string("Is hand: ") + string(bool2string(isHand));
+	putText(src, info, Point(ypos, xpos), fontFace, fontSize, fColor);
 	xpos += lineChange;
 	std::string currState;
 	switch (state)
@@ -100,27 +100,30 @@ void HandGesture::printGestureInfo(Mat src){
 
 bool HandGesture::detectIfHand(){
 	analyzeContours();
-	double h = bRect_height; 
+	double h = bRect_height;
 	double w = bRect_width;
-	isHand=true;
-	if(fingerTips.size() > 5 ){
+	isHand = true;
+	if (fingerTips.size() > 5){
 		std::cout << "Not hand: more than 5 fingers." << std::endl;
-		isHand=false;
-	}else if(h==0 || w == 0){
+		isHand = false;
+	}
+	else if (h == 0 || w == 0){
 		std::cout << "Not hand: bounding box too small." << std::endl;
-		isHand=false;
-	}else if(h/w > 4 || w/h >4){
+		isHand = false;
+	}
+	else if (h / w > 4 || w / h > 4){
 		std::cout << "Not hand: bounding box height/width or width/height ratio not in a valid range." << std::endl;
-		isHand=false;	
-	}else if(bRect.x<20){
+		isHand = false;
+	}
+	else if (bRect.x < 20){
 		std::cout << "Not hand: bounding box too close to the edge." << std::endl;
-		isHand=false;	
-	}	
+		isHand = false;
+	}
 	return isHand;
 }
 
 float HandGesture::distanceP2P(Point a, Point b){
-	float d= sqrt(fabs( pow(a.x-b.x,2) + pow(a.y-b.y,2) )) ;  
+	float d = sqrt(fabs(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)));
 	return d;
 }
 
@@ -129,14 +132,15 @@ float HandGesture::distanceP2P(Point a, Point b){
 void HandGesture::removeRedundantFingerTips(){
 	std::cout << "fingerTips size = " << fingerTips.size() << std::endl;
 	vector<Point> newFingers;
-	for(int i=0;i<fingerTips.size();i++){
-		for(int j=i;j<fingerTips.size();j++){
-			if(distanceP2P(fingerTips[i],fingerTips[j])<10 && i!=j){
-			}else{
-				newFingers.push_back(fingerTips[i]);	
+	for (int i = 0; i < fingerTips.size(); i++){
+		for (int j = i; j < fingerTips.size(); j++){
+			if (distanceP2P(fingerTips[i], fingerTips[j]) < 10 && i != j){
+			}
+			else{
+				newFingers.push_back(fingerTips[i]);
 				break;
-			}	
-		}	
+			}
+		}
 	}
 	std::cout << "newFingers size = " << newFingers.size() << std::endl;
 	fingerTips.swap(newFingers);
@@ -144,45 +148,45 @@ void HandGesture::removeRedundantFingerTips(){
 
 void HandGesture::computeFingerNumber(){
 	std::sort(fingerNumbers.begin(), fingerNumbers.end());
-	int frequentNr;	
-	int thisNumberFreq=1;
-	int highestFreq=1;
-	frequentNr=fingerNumbers[0];
-	for(int i=1;i<fingerNumbers.size(); i++){
-		if(fingerNumbers[i-1]!=fingerNumbers[i]){
-			if(thisNumberFreq>highestFreq){
-				frequentNr=fingerNumbers[i-1];	
-				highestFreq=thisNumberFreq;
+	int frequentNr;
+	int thisNumberFreq = 1;
+	int highestFreq = 1;
+	frequentNr = fingerNumbers[0];
+	for (int i = 1; i < fingerNumbers.size(); i++){
+		if (fingerNumbers[i - 1] != fingerNumbers[i]){
+			if (thisNumberFreq > highestFreq){
+				frequentNr = fingerNumbers[i - 1];
+				highestFreq = thisNumberFreq;
 			}
-			thisNumberFreq=0;	
+			thisNumberFreq = 0;
 		}
-		thisNumberFreq++;	
+		thisNumberFreq++;
 	}
-	if(thisNumberFreq>highestFreq){
-		frequentNr=fingerNumbers[fingerNumbers.size()-1];	
+	if (thisNumberFreq > highestFreq){
+		frequentNr = fingerNumbers[fingerNumbers.size() - 1];
 	}
-	mostFrequentFingerNumber=frequentNr;	
+	mostFrequentFingerNumber = frequentNr;
 }
 
 void HandGesture::addFingerNumberToVector(){
-	int i=fingerTips.size();	
+	int i = fingerTips.size();
 	fingerNumbers.push_back(i);
 }
 
 // add the calculated number of fingers to image m->src
 void HandGesture::addNumberToImg(MyImage *m){
-	int xPos=10;
-	int yPos=10;
-	int offset=30;
-	float fontSize=1.5f;
+	int xPos = 10;
+	int yPos = 10;
+	int offset = 30;
+	float fontSize = 1.5f;
 	int fontFace = FONT_HERSHEY_PLAIN;
-	for(int i=0;i<numbers2Display.size();i++){
-		rectangle(m->src,Point(xPos,yPos),Point(xPos+offset,yPos+offset),numberColor, 2);	
-		putText(m->src, intToString(numbers2Display[i]),Point(xPos+7,yPos+offset-3),fontFace,fontSize,numberColor);
-		xPos+=40;
-		if(xPos>(m->src.cols-m->src.cols/3.2)){
-			yPos+=40;
-			xPos=10;
+	for (int i = 0; i<numbers2Display.size(); i++){
+		rectangle(m->src, Point(xPos, yPos), Point(xPos + offset, yPos + offset), numberColor, 2);
+		putText(m->src, intToString(numbers2Display[i]), Point(xPos + 7, yPos + offset - 3), fontFace, fontSize, numberColor);
+		xPos += 40;
+		if (xPos>(m->src.cols - m->src.cols / 3.2)){
+			yPos += 40;
+			xPos = 10;
 		}
 	}
 }
@@ -193,79 +197,83 @@ void HandGesture::getFingerNumber(MyImage *m){
 	removeRedundantFingerTips();
 	std::cout << "bounding box height = " << bRect.height << " width = " << bRect.width << std::endl;
 	std::cout << "m->src.rows = " << m->src.rows << " m->src.cols = " << m->src.cols << std::endl;
-	if(bRect.height > m->src.rows/2 && nrNoFinger>12 && isHand ){
-		numberColor=Scalar(0,200,0);
+	if (bRect.height > m->src.rows / 2 && nrNoFinger > 12 && isHand){
+		numberColor = Scalar(0, 200, 0);
 		addFingerNumberToVector();
-		if(frameNumber>12){
+		if (frameNumber > 12){
 			// over 12 frames
-			nrNoFinger=0;
-			frameNumber=0;	
-			computeFingerNumber();	
+			nrNoFinger = 0;
+			frameNumber = 0;
+			computeFingerNumber();
 			numbers2Display.push_back(mostFrequentFingerNumber);
 			fingerNumbers.clear();
-		}else{
+		}
+		else{
 			frameNumber++;
 		}
-	}else{
+	}
+	else{
 		nrNoFinger++;
-		numberColor=Scalar(200,200,200);
+		numberColor = Scalar(200, 200, 200);
 	}
 	addNumberToImg(m);
 	std::cout << "Number added to the image." << std::endl;
 }
 
 float HandGesture::getAngle(Point s, Point f, Point e){
-	float l1 = distanceP2P(f,s);
-	float l2 = distanceP2P(f,e);
-	float dot=(s.x-f.x)*(e.x-f.x) + (s.y-f.y)*(e.y-f.y);
-	float angle = acos(dot/(l1*l2));
-	angle=angle*180/PI;
+	float l1 = distanceP2P(f, s);
+	float l2 = distanceP2P(f, e);
+	float dot = (s.x - f.x)*(e.x - f.x) + (s.y - f.y)*(e.y - f.y);
+	float angle = acos(dot / (l1*l2));
+	angle = angle * 180 / PI;
 	return angle;
 }
 
 void HandGesture::eleminateDefects(MyImage *m){
-	int tolerance =  bRect_height/5;
-	float angleTol=95; // angle threshold between two fingers
+	int tolerance = bRect_height / 5;
+	float angleTol = 95; // angle threshold between two fingers
 	vector<Vec4i> newDefects;
 	int startidx, endidx, faridx;
-	vector<Vec4i>::iterator d=defects[cIdx].begin();
-	while( d!=defects[cIdx].end() ) {
-   	    Vec4i& v=(*d);
-	    startidx=v[0]; Point ptStart(contours[cIdx][startidx] );
-   		endidx=v[1]; Point ptEnd(contours[cIdx][endidx] );
-  	    faridx=v[2]; Point ptFar(contours[cIdx][faridx] );
-		if(distanceP2P(ptStart, ptFar) > tolerance && distanceP2P(ptEnd, ptFar) > tolerance && getAngle(ptStart, ptFar, ptEnd  ) < angleTol ){
-			if( ptEnd.y > (bRect.y + bRect.height -bRect.height/4 ) ){
-			}else if( ptStart.y > (bRect.y + bRect.height -bRect.height/4 ) ){
-			}else {
-				newDefects.push_back(v);		
+	vector<Vec4i>::iterator d = defects[cIdx].begin();
+	while (d != defects[cIdx].end()) {
+		Vec4i& v = (*d);
+		startidx = v[0]; Point ptStart(contours[cIdx][startidx]);
+		endidx = v[1]; Point ptEnd(contours[cIdx][endidx]);
+		faridx = v[2]; Point ptFar(contours[cIdx][faridx]);
+		if (distanceP2P(ptStart, ptFar) > tolerance && distanceP2P(ptEnd, ptFar) > tolerance && getAngle(ptStart, ptFar, ptEnd) < angleTol){
+			if (ptEnd.y > (bRect.y + bRect.height - bRect.height / 4)){
 			}
-		}	
+			else if (ptStart.y > (bRect.y + bRect.height - bRect.height / 4)){
+			}
+			else {
+				newDefects.push_back(v);
+			}
+		}
 		d++;
 	}
-	nrOfDefects=newDefects.size();
+	nrOfDefects = newDefects.size();
 	defects[cIdx].swap(newDefects);
 	removeRedundantEndPoints(defects[cIdx], m);
 }
 
 // remove endpoint of convexity defects if they are at the same fingertip
-void HandGesture::removeRedundantEndPoints(vector<Vec4i> newDefects,MyImage *m){
+void HandGesture::removeRedundantEndPoints(vector<Vec4i> newDefects, MyImage *m){
 	Vec4i temp;
 	float avgX, avgY;
-	float tolerance=bRect_width/6;
+	float tolerance = bRect_width / 6;
 	int startidx, endidx, faridx;
 	int startidx2, endidx2;
-	for(int i=0;i<newDefects.size();i++){
-		for(int j=i;j<newDefects.size();j++){
-	    	startidx=newDefects[i][0]; Point ptStart(contours[cIdx][startidx] );
-	   		endidx=newDefects[i][1]; Point ptEnd(contours[cIdx][endidx] );
-	    	startidx2=newDefects[j][0]; Point ptStart2(contours[cIdx][startidx2] );
-	   		endidx2=newDefects[j][1]; Point ptEnd2(contours[cIdx][endidx2] );
-			if(distanceP2P(ptStart,ptEnd2) < tolerance ){
-				contours[cIdx][startidx]=ptEnd2;
+	for (int i = 0; i < newDefects.size(); i++){
+		for (int j = i; j < newDefects.size(); j++){
+			startidx = newDefects[i][0]; Point ptStart(contours[cIdx][startidx]);
+			endidx = newDefects[i][1]; Point ptEnd(contours[cIdx][endidx]);
+			startidx2 = newDefects[j][0]; Point ptStart2(contours[cIdx][startidx2]);
+			endidx2 = newDefects[j][1]; Point ptEnd2(contours[cIdx][endidx2]);
+			if (distanceP2P(ptStart, ptEnd2) < tolerance){
+				contours[cIdx][startidx] = ptEnd2;
 				break;
-			}if(distanceP2P(ptEnd,ptStart2) < tolerance ){
-				contours[cIdx][startidx2]=ptEnd;
+			}if (distanceP2P(ptEnd, ptStart2) < tolerance){
+				contours[cIdx][startidx2] = ptEnd;
 			}
 		}
 	}
@@ -279,27 +287,27 @@ void HandGesture::checkForOneFinger(MyImage *m){
 	int yTol = bRect.height / 30;
 	//int yTol = 0;
 	cv::Point highestP;
-	highestP.y=m->src.rows;
-	vector<Point>::iterator d=contours[cIdx].begin();
-	while( d!=contours[cIdx].end() ) {
-   	    Point v=(*d);
+	highestP.y = m->src.rows;
+	vector<Point>::iterator d = contours[cIdx].begin();
+	while (d != contours[cIdx].end()) {
+		Point v = (*d);
 		// find the point with minimum y value and assign to highestP
-		if(v.y<highestP.y){
-			highestP=v;
+		if (v.y < highestP.y){
+			highestP = v;
 			//std::cout << "highestP.y = " << highestP.y << std::endl;
 		}
-		d++;	
-	}int n=0;
-	d=hullP[cIdx].begin();
-	while( d!=hullP[cIdx].end() ) {
-   	    Point v=(*d);
-			//std::cout<<"v.x " << v.x << " v.y "<<  v.y << " highestP.y " << highestP.y<< " ytol "<<yTol<<std::endl;
-		if(v.y<highestP.y+yTol && v.y!=highestP.y && v.x!=highestP.x){
+		d++;
+	}int n = 0;
+	d = hullP[cIdx].begin();
+	while (d != hullP[cIdx].end()) {
+		Point v = (*d);
+		//std::cout<<"v.x " << v.x << " v.y "<<  v.y << " highestP.y " << highestP.y<< " ytol "<<yTol<<std::endl;
+		if (v.y < highestP.y + yTol && v.y != highestP.y && v.x != highestP.x){
 			n++;
 		}
-		d++;	
+		d++;
 	}
-	
+
 	if (n == 0) {
 		// there's only 1 finger
 		fingerTips.push_back(highestP);
@@ -339,16 +347,59 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
 		}
 	}
+	else {
+		std::cout << "n = " << n << " , fails to detect 1 finger, use tracking info..." << std::endl;
+		// use tracking info, if the score is high then the same finger is probably still being tracked
+		if (m->firstMatchScore >= 0.90) {
+
+			fingerTips.push_back(m->firstMatchLoc);
+
+			if (prevState != state) {
+				oneFingerCoordinates.clear();
+			}
+
+			// check the distance from last fingertip
+			if (oneFingerCoordinates.size() > 0) {
+				if (sqrt(pow(oneFingerCoordinates.back().x - m->firstMatchLoc.x, 2) +
+					pow(oneFingerCoordinates.back().y - m->firstMatchLoc.y, 2)) < 100) {
+					if (oneFingerCoordinates.size() == 30) {
+						oneFingerCoordinates.erase(oneFingerCoordinates.begin());
+					}
+
+					oneFingerCoordinates.push_back(m->firstMatchLoc);
+				}
+			}
+			else {
+				oneFingerCoordinates.push_back(m->firstMatchLoc);
+			}
+
+			std::cout << "m->firstMatchLoc coordinates: " << m->firstMatchLoc.x << " " << m->firstMatchLoc.y << std::endl;
+
+			m->fingerTipLoc = m->firstMatchLoc; // store finger coordinates
+
+			// check bounding condition before making a patch image 
+			if ((m->firstMatchLoc.x - 20) > 0 &&
+				(m->firstMatchLoc.y - 10) > 0 &&
+				(m->firstMatchLoc.x + 20) < m->src.cols &&
+				(m->firstMatchLoc.y + 30) < m->src.rows) {
+				cv::Rect patchRect(m->firstMatchLoc.x - 20, m->firstMatchLoc.y - 10, 40, 40);
+				cv::Mat patchImage = m->src(patchRect);
+				patchImage.copyTo(m->patchImg);
+				//m->patchImg = patchImage;
+				cv::imwrite("..\\images\\patch_image.jpg", m->patchImg);
+			}
+		}
+	}
 }
 
 void HandGesture::drawFingerTips(MyImage *m){
 	Point p;
-	int k=0;
-	for(int i=0;i<fingerTips.size();i++){
-		p=fingerTips[i];
-		putText(m->src,intToString(i),p-Point(0,30),fontFace, 1.2f,Scalar(200,200,200),2);
-   		circle( m->src,p,   5, Scalar(100,255,100), 4 );
-   	 }
+	int k = 0;
+	for (int i = 0; i < fingerTips.size(); i++){
+		p = fingerTips[i];
+		putText(m->src, intToString(i), p - Point(0, 30), fontFace, 1.2f, Scalar(200, 200, 200), 2);
+		circle(m->src, p, 5, Scalar(100, 255, 100), 4);
+	}
 
 	if (fingerTips.size() == 1) {
 		std::cout << "oneFingerCoordinates size: " << oneFingerCoordinates.size() << std::endl;
@@ -375,14 +426,14 @@ void HandGesture::drawFingerTips(MyImage *m){
 
 void HandGesture::getFingerTips(MyImage *m){
 	fingerTips.clear();
-	int i=0;
-	vector<Vec4i>::iterator d=defects[cIdx].begin();
-	while( d!=defects[cIdx].end() ) {
-   	    Vec4i& v=(*d);
-	    int startidx=v[0]; Point ptStart(contours[cIdx][startidx] );
-   		int endidx=v[1]; Point ptEnd(contours[cIdx][endidx] );
-  	    int faridx=v[2]; Point ptFar(contours[cIdx][faridx] );
-		if(i==0){
+	int i = 0;
+	vector<Vec4i>::iterator d = defects[cIdx].begin();
+	while (d != defects[cIdx].end()) {
+		Vec4i& v = (*d);
+		int startidx = v[0]; Point ptStart(contours[cIdx][startidx]);
+		int endidx = v[1]; Point ptEnd(contours[cIdx][endidx]);
+		int faridx = v[2]; Point ptFar(contours[cIdx][faridx]);
+		if (i == 0){
 			fingerTips.push_back(ptStart);
 			//std::cout << "ptStart coordinates: " << ptStart.x << " " << ptStart.y << std::endl;
 			i++;
@@ -391,7 +442,7 @@ void HandGesture::getFingerTips(MyImage *m){
 		//std::cout << "ptEnd coordinates: " << ptEnd.x << " " << ptEnd.y << std::endl;
 		d++;
 		i++;
-   	}
+	}
 
 	if (fingerTips.size() == 2) {
 
@@ -400,28 +451,101 @@ void HandGesture::getFingerTips(MyImage *m){
 			secondFingerCoordinates.clear();
 		}
 
-		if (firstFingerCoordinates.size() == 30) {
-			firstFingerCoordinates.erase(firstFingerCoordinates.begin());
+		// put finger idx 0 into first vector, finger idx 1 into second vector if they both empty
+		if (firstFingerCoordinates.size() == 0 && secondFingerCoordinates.size() == 0) {
+			firstFingerCoordinates.push_back(fingerTips[0]);
+			secondFingerCoordinates.push_back(fingerTips[1]);
 		}
-		if (secondFingerCoordinates.size() == 30) {
-			secondFingerCoordinates.erase(secondFingerCoordinates.begin());
+		else {
+			if (firstFingerCoordinates.size() == 30) {
+				firstFingerCoordinates.erase(firstFingerCoordinates.begin());
+			}
+			if (secondFingerCoordinates.size() == 30) {
+				secondFingerCoordinates.erase(secondFingerCoordinates.begin());
+			}
+
+			// only first or second vector is empty
+			if (firstFingerCoordinates.size() == 0 || secondFingerCoordinates.size() == 0) {
+				firstFingerCoordinates.push_back(fingerTips[0]);
+				secondFingerCoordinates.push_back(fingerTips[1]);
+			}
+			// both vectors are not empty
+			else {
+				// calculate distances from idx 0 to last elem in first and second vectors;
+				// from idx 1 to last elem in first and second vectors
+				float dist0_first = sqrt(pow(fingerTips[0].x - firstFingerCoordinates.back().x, 2)
+					+ pow(fingerTips[0].y - firstFingerCoordinates.back().y, 2));
+				float dist0_second = sqrt(pow(fingerTips[0].x - secondFingerCoordinates.back().x, 2)
+					+ pow(fingerTips[0].y - secondFingerCoordinates.back().y, 2));
+				float dist1_first = sqrt(pow(fingerTips[1].x - firstFingerCoordinates.back().x, 2)
+					+ pow(fingerTips[1].y - firstFingerCoordinates.back().y, 2));
+				float dist1_second = sqrt(pow(fingerTips[1].x - secondFingerCoordinates.back().x, 2)
+					+ pow(fingerTips[1].y - secondFingerCoordinates.back().y, 2));
+
+				// idx 0 is closer to first vector
+				if (dist0_first < dist0_second) {
+					// idx 1 is also close to the first vector
+					if (dist1_first < dist1_second) {
+						// idx 0 is closer to first vector than idx 1
+						if (dist0_first < dist1_first) {
+							firstFingerCoordinates.push_back(fingerTips[0]);
+							secondFingerCoordinates.push_back(fingerTips[1]);
+						}
+						// idx 1 is closer to first vector than idx 0
+						else {
+							firstFingerCoordinates.push_back(fingerTips[1]);
+							secondFingerCoordinates.push_back(fingerTips[0]);
+						}
+					}
+					// idx 1 is not close to the first vector
+					else {
+						firstFingerCoordinates.push_back(fingerTips[0]);
+						secondFingerCoordinates.push_back(fingerTips[1]);
+					}
+				}
+				// idx 0 is closer to second vector
+				else {
+					// idx 1 is also close to the second vector 
+					if (dist1_first >= dist1_second) {
+						// idx 0 is closer to second vector than idx 1
+						if (dist0_second < dist1_second) {
+							secondFingerCoordinates.push_back(fingerTips[0]);
+							firstFingerCoordinates.push_back(fingerTips[1]);
+						}
+						// idx 1 is closer to second vector than idx 0
+						else {
+							secondFingerCoordinates.push_back(fingerTips[1]);
+							firstFingerCoordinates.push_back(fingerTips[0]);
+						}
+					}
+					// idx 1 is not close to the second vector
+					else {
+						secondFingerCoordinates.push_back(fingerTips[0]);
+						firstFingerCoordinates.push_back(fingerTips[1]);
+					}
+				}
+			}
 		}
-		firstFingerCoordinates.push_back(fingerTips[0]);
-		secondFingerCoordinates.push_back(fingerTips[1]);
+
+		/*firstFingerCoordinates.push_back(fingerTips[0]);
+		secondFingerCoordinates.push_back(fingerTips[1]);*/
 		oneFingerCoordinates.clear();
 
 		// find the close finger to the previous fingerTipLoc and update
-		float dist1 = sqrt(pow(m->fingerTipLoc.x - fingerTips[0].x, 2) + pow(m->fingerTipLoc.y - fingerTips[0].y, 2));
+		/*float dist1 = sqrt(pow(m->fingerTipLoc.x - fingerTips[0].x, 2) + pow(m->fingerTipLoc.y - fingerTips[0].y, 2));
 		float dist2 = sqrt(pow(m->fingerTipLoc.x - fingerTips[1].x, 2) + pow(m->fingerTipLoc.y - fingerTips[1].y, 2));
 
 		if (dist1 < dist2) {
-			m->fingerTipLoc = fingerTips[0];
-			m->secondTipLoc = fingerTips[1];
+		m->fingerTipLoc = fingerTips[0];
+		m->secondTipLoc = fingerTips[1];
 		}
 		else {
-			m->fingerTipLoc = fingerTips[1];
-			m->secondTipLoc = fingerTips[0];
-		}
+		m->fingerTipLoc = fingerTips[1];
+		m->secondTipLoc = fingerTips[0];
+		}*/
+
+		m->fingerTipLoc = firstFingerCoordinates.back();
+		m->secondTipLoc = secondFingerCoordinates.back();
 
 		// create patch image
 		if ((m->fingerTipLoc.x - 20) > 0 && (m->fingerTipLoc.y - 10) > 0 &&
@@ -441,7 +565,8 @@ void HandGesture::getFingerTips(MyImage *m){
 			cv::imwrite("..\\images\\patch_image_2fingers_2.jpg", m->secondPatchImg);
 		}
 
-	} else if (fingerTips.size()==0) {
+	}
+	else if (fingerTips.size() == 0) {
 		std::cout << "fingerTips.size is zero, call checkForOneFinger..." << std::endl;
 		firstFingerCoordinates.clear();
 		secondFingerCoordinates.clear();
@@ -452,7 +577,7 @@ void HandGesture::getFingerTips(MyImage *m){
 		firstFingerCoordinates.clear();
 		secondFingerCoordinates.clear();
 		oneFingerCoordinates.clear();
-		
+
 		// find the close finger to the previous fingerTipLoc and update
 		std::vector<float> dists(fingerTips.size());
 		std::vector<float> secondDists(fingerTips.size());

@@ -22,6 +22,8 @@ class MyImage{
 		cv::Point secondTipLoc;
 		cv::Point2f firstMatchLoc;
 		cv::Point2f secondMatchLoc;
+		float firstMatchScore;
+		float secondMatchScore;
 		vector<Mat> bwList;
 		VideoCapture cap;		
 		int cameraSrc; 
