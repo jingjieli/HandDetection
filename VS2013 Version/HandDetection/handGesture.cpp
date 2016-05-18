@@ -119,6 +119,10 @@ bool HandGesture::detectIfHand(){
 		std::cout << "Not hand: bounding box too close to the edge." << std::endl;
 		isHand = false;
 	}
+	else if (contours[cIdx].size() < 800) {
+		std::cout << "Not hand: not enough points on biggest contour." << std::endl;
+		isHand = false;
+	}
 	return isHand;
 }
 

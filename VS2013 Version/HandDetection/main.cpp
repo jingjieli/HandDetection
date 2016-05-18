@@ -300,7 +300,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 	hg->cIdx = findBiggestContour(hg->contours); // record the biggest contour index in hg->cIdx
 	std::cout << "biggest contour has " << hg->contours[hg->cIdx].size() << " points." << std::endl;
 	// if the biggest contour size is still too small, the it's probably a valid finger
-	if (hg->cIdx != -1 && hg->contours[hg->cIdx].size() > 800) {
+	if (hg->cIdx != -1) {
 		//approxPolyDP( Mat(hg->contours[hg->cIdx]), hg->contours[hg->cIdx], 11, true );
 		// use the biggest contour that has been found
 		hg->bRect = boundingRect(Mat(hg->contours[hg->cIdx])); // get the bounding box of the contour	
@@ -313,9 +313,9 @@ void makeContours(MyImage *m, HandGesture* hg){
 		}
 		bool isHand = hg->detectIfHand();
 
-		hg->printGestureInfo(m->src);
-		hg->fingerTips.clear();
-		if (isHand){
+		//hg->printGestureInfo(m->src);
+		//hg->fingerTips.clear();
+		if (isHand) {
 			hg->getFingerTips(m);
 			hg->drawFingerTips(m);
 			myDrawContours(m, hg);
@@ -325,44 +325,46 @@ void makeContours(MyImage *m, HandGesture* hg){
 			// if detector fails to detect the hand, use tracker info
 			if (m->firstMatchScore >= 0.90) {
 				hg->fingerTips.push_back(m->firstMatchLoc);
-				if (hg->state == ONE_FINGER || hg->state == TOUCH ||
-					hg->state == PANNING || hg->state == IDLE) {
-					// update oneFingerCoor-s
-					if (hg->oneFingerCoordinates.size() == 30) {
-						hg->oneFingerCoordinates.erase(hg->oneFingerCoordinates.begin());
-					}
-					hg->oneFingerCoordinates.push_back(m->firstMatchLoc);
-				}
-				else if (hg->state == TWO_FINGERS || hg->state == ZOOM_IN ||
-					hg->state == ZOOM_OUT || hg->state == IDLE) {
-					// update firstFingerCoor-s
-					if (hg->firstFingerCoordinates.size() == 30) {
-						hg->firstFingerCoordinates.erase(hg->firstFingerCoordinates.begin());
-					}
-					hg->firstFingerCoordinates.push_back(m->firstMatchLoc);
-				}
 			}
 
-			if (m->secondMatchScore >= 0.90) {
+			if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) +
+				pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 30 && 
+				m->secondMatchScore >= 0.90) {
+				// the first and second trackers are not tracking the same finger
 				hg->fingerTips.push_back(m->secondMatchLoc);
-				if (hg->state == ONE_FINGER || hg->state == TOUCH ||
-					hg->state == PANNING || hg->state == IDLE) {
-					// update oneFingerCoor-s
-					if (hg->oneFingerCoordinates.size() == 30) {
-						hg->oneFingerCoordinates.erase(hg->oneFingerCoordinates.begin());
-					}
-					hg->oneFingerCoordinates.push_back(m->secondMatchLoc);
+			}
+
+			if (hg->fingerTips.size() == 1) {
+				if (hg->oneFingerCoordinates.size() == 30) {
+					hg->oneFingerCoordinates.erase(hg->oneFingerCoordinates.begin());
 				}
-				else if (hg->state == TWO_FINGERS || hg->state == ZOOM_IN ||
-					hg->state == ZOOM_OUT || hg->state == IDLE) {
-					// update firstFingerCoor-s
-					if (hg->secondFingerCoordinates.size() == 30) {
-						hg->secondFingerCoordinates.erase(hg->secondFingerCoordinates.begin());
-					}
-					hg->secondFingerCoordinates.push_back(m->secondMatchLoc);
+				hg->oneFingerCoordinates.push_back(hg->fingerTips[0]);
+				hg->firstFingerCoordinates.clear();
+				hg->secondFingerCoordinates.clear();
+			}
+			else if (hg->fingerTips.size() == 2) {
+				if (hg->firstFingerCoordinates.size() == 30) {
+					hg->firstFingerCoordinates.erase(hg->firstFingerCoordinates.begin());
 				}
+				if (hg->secondFingerCoordinates.size() == 30) {
+					hg->secondFingerCoordinates.erase(hg->secondFingerCoordinates.begin());
+				}
+				hg->firstFingerCoordinates.push_back(hg->fingerTips[0]);
+				hg->secondFingerCoordinates.push_back(hg->fingerTips[1]);
+				hg->oneFingerCoordinates.clear();
+			}
+			else {
+				hg->oneFingerCoordinates.clear();
+				hg->firstFingerCoordinates.clear();
+				hg->secondFingerCoordinates.clear();
 			}
 		}
+
+		if (hg->fingerTips.size() != 0) {
+			hg->isHand = true;
+		}
+
+		hg->printGestureInfo(m->src);
 	}
 	else {
 		hg->fingerTips.clear();
