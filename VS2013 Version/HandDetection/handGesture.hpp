@@ -39,8 +39,8 @@ class HandGesture{
 		void getFingerTips(MyImage *m);
 		void drawFingerTips(MyImage *m);
 		vector<Point> oneFingerCoordinates; // store detected coor-s for the only finger 
-		vector<Point> firstFingerCoordinates; // store detected coor-s for first finger
-		vector<Point> secondFingerCoordinates; // store detected coor-s for second finger 
+		vector<Point> firstFingerCoordinates; // store the first detected finger coor-s 
+		vector<Point> secondFingerCoordinates; // store the second detected finger coor-s  
 		vector<Point2f> matchPointsCoordinates; // store patch matching points for first finger
 		vector<Point2f> secondMatchPtsCoordinates; // store patch matching points for second finger
 		GestureState state; 

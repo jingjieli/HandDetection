@@ -18,8 +18,8 @@ class MyImage{
 		Mat bw; // binary image
 		Mat patchImg; // patch image
 		Mat secondPatchImg;
-		cv::Point fingerTipLoc;
-		cv::Point secondTipLoc;
+		cv::Point fingerTipLoc; // store finger idx 0 location
+		cv::Point secondTipLoc; // store finger idx 1 (if there's any detected) location 
 		cv::Point2f firstMatchLoc;
 		cv::Point2f secondMatchLoc;
 		float firstMatchScore;

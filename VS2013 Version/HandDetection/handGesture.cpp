@@ -130,7 +130,7 @@ float HandGesture::distanceP2P(Point a, Point b){
 // remove fingertips that are too close to 
 // eachother
 void HandGesture::removeRedundantFingerTips(){
-	std::cout << "fingerTips size = " << fingerTips.size() << std::endl;
+	std::cout << "call removeRedundantFingerTips fingerTips size = " << fingerTips.size() << std::endl;
 	vector<Point> newFingers;
 	for (int i = 0; i < fingerTips.size(); i++){
 		for (int j = i; j < fingerTips.size(); j++){
@@ -142,7 +142,7 @@ void HandGesture::removeRedundantFingerTips(){
 			}
 		}
 	}
-	std::cout << "newFingers size = " << newFingers.size() << std::endl;
+	std::cout << "leave removeRedundantFingerTips newFingers size = " << newFingers.size() << std::endl;
 	fingerTips.swap(newFingers);
 }
 
@@ -390,6 +390,20 @@ void HandGesture::checkForOneFinger(MyImage *m){
 			}
 		}
 	}
+
+	// reset vector according to number of finger detected 
+	if (fingerTips.size() == 1) {
+		firstFingerCoordinates.clear();
+		secondFingerCoordinates.clear();
+	}
+	else if (fingerTips.size() == 2) {
+		oneFingerCoordinates.clear();
+	}
+	else {
+		oneFingerCoordinates.clear();
+		firstFingerCoordinates.clear();
+		secondFingerCoordinates.clear();
+	}
 }
 
 void HandGesture::drawFingerTips(MyImage *m){
@@ -445,6 +459,10 @@ void HandGesture::getFingerTips(MyImage *m){
 	}
 
 	if (fingerTips.size() == 2) {
+		
+		// always put the first detected finger into firstFingerCoor-s and 
+		// second detected finger into secondFingerCoor-s, but with some
+		// checkings beforehand
 
 		if (prevState != state) {
 			firstFingerCoordinates.clear();
@@ -471,78 +489,25 @@ void HandGesture::getFingerTips(MyImage *m){
 			}
 			// both vectors are not empty
 			else {
-				// calculate distances from idx 0 to last elem in first and second vectors;
-				// from idx 1 to last elem in first and second vectors
-				float dist0_first = sqrt(pow(fingerTips[0].x - firstFingerCoordinates.back().x, 2)
-					+ pow(fingerTips[0].y - firstFingerCoordinates.back().y, 2));
-				float dist0_second = sqrt(pow(fingerTips[0].x - secondFingerCoordinates.back().x, 2)
-					+ pow(fingerTips[0].y - secondFingerCoordinates.back().y, 2));
-				float dist1_first = sqrt(pow(fingerTips[1].x - firstFingerCoordinates.back().x, 2)
-					+ pow(fingerTips[1].y - firstFingerCoordinates.back().y, 2));
-				float dist1_second = sqrt(pow(fingerTips[1].x - secondFingerCoordinates.back().x, 2)
-					+ pow(fingerTips[1].y - secondFingerCoordinates.back().y, 2));
+				// calculate the distances between the newly detected finger and the last
+				// element stored in the vector
+				float dist1 = sqrt(pow(fingerTips[0].x - m->fingerTipLoc.x, 2) + pow(fingerTips[0].y - m->fingerTipLoc.y, 2));
+				float dist2 = sqrt(pow(fingerTips[1].x - m->secondTipLoc.x, 2) + pow(fingerTips[1].y - m->secondTipLoc.y, 2));
 
-				// idx 0 is closer to first vector
-				if (dist0_first < dist0_second) {
-					// idx 1 is also close to the first vector
-					if (dist1_first < dist1_second) {
-						// idx 0 is closer to first vector than idx 1
-						if (dist0_first < dist1_first) {
-							firstFingerCoordinates.push_back(fingerTips[0]);
-							secondFingerCoordinates.push_back(fingerTips[1]);
-						}
-						// idx 1 is closer to first vector than idx 0
-						else {
-							firstFingerCoordinates.push_back(fingerTips[1]);
-							secondFingerCoordinates.push_back(fingerTips[0]);
-						}
-					}
-					// idx 1 is not close to the first vector
-					else {
-						firstFingerCoordinates.push_back(fingerTips[0]);
-						secondFingerCoordinates.push_back(fingerTips[1]);
-					}
+				// assume a differnet finger is detected if the distance is too large
+				if (dist1 > 100) {
+					firstFingerCoordinates.clear();
 				}
-				// idx 0 is closer to second vector
-				else {
-					// idx 1 is also close to the second vector 
-					if (dist1_first >= dist1_second) {
-						// idx 0 is closer to second vector than idx 1
-						if (dist0_second < dist1_second) {
-							secondFingerCoordinates.push_back(fingerTips[0]);
-							firstFingerCoordinates.push_back(fingerTips[1]);
-						}
-						// idx 1 is closer to second vector than idx 0
-						else {
-							secondFingerCoordinates.push_back(fingerTips[1]);
-							firstFingerCoordinates.push_back(fingerTips[0]);
-						}
-					}
-					// idx 1 is not close to the second vector
-					else {
-						secondFingerCoordinates.push_back(fingerTips[0]);
-						firstFingerCoordinates.push_back(fingerTips[1]);
-					}
+				if (dist2 > 100) {
+					secondFingerCoordinates.clear();
 				}
+
+				firstFingerCoordinates.push_back(fingerTips[0]);
+				secondFingerCoordinates.push_back(fingerTips[1]);
 			}
 		}
 
-		/*firstFingerCoordinates.push_back(fingerTips[0]);
-		secondFingerCoordinates.push_back(fingerTips[1]);*/
 		oneFingerCoordinates.clear();
-
-		// find the close finger to the previous fingerTipLoc and update
-		/*float dist1 = sqrt(pow(m->fingerTipLoc.x - fingerTips[0].x, 2) + pow(m->fingerTipLoc.y - fingerTips[0].y, 2));
-		float dist2 = sqrt(pow(m->fingerTipLoc.x - fingerTips[1].x, 2) + pow(m->fingerTipLoc.y - fingerTips[1].y, 2));
-
-		if (dist1 < dist2) {
-		m->fingerTipLoc = fingerTips[0];
-		m->secondTipLoc = fingerTips[1];
-		}
-		else {
-		m->fingerTipLoc = fingerTips[1];
-		m->secondTipLoc = fingerTips[0];
-		}*/
 
 		m->fingerTipLoc = firstFingerCoordinates.back();
 		m->secondTipLoc = secondFingerCoordinates.back();

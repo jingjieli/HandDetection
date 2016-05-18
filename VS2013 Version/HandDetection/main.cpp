@@ -326,7 +326,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 			if (m->firstMatchScore >= 0.90) {
 				hg->fingerTips.push_back(m->firstMatchLoc);
 				if (hg->state == ONE_FINGER || hg->state == TOUCH ||
-					hg->state == PANNING) {
+					hg->state == PANNING || hg->state == IDLE) {
 					// update oneFingerCoor-s
 					if (hg->oneFingerCoordinates.size() == 30) {
 						hg->oneFingerCoordinates.erase(hg->oneFingerCoordinates.begin());
@@ -334,7 +334,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 					hg->oneFingerCoordinates.push_back(m->firstMatchLoc);
 				}
 				else if (hg->state == TWO_FINGERS || hg->state == ZOOM_IN ||
-					hg->state == ZOOM_OUT) {
+					hg->state == ZOOM_OUT || hg->state == IDLE) {
 					// update firstFingerCoor-s
 					if (hg->firstFingerCoordinates.size() == 30) {
 						hg->firstFingerCoordinates.erase(hg->firstFingerCoordinates.begin());
@@ -346,7 +346,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 			if (m->secondMatchScore >= 0.90) {
 				hg->fingerTips.push_back(m->secondMatchLoc);
 				if (hg->state == ONE_FINGER || hg->state == TOUCH ||
-					hg->state == PANNING) {
+					hg->state == PANNING || hg->state == IDLE) {
 					// update oneFingerCoor-s
 					if (hg->oneFingerCoordinates.size() == 30) {
 						hg->oneFingerCoordinates.erase(hg->oneFingerCoordinates.begin());
@@ -354,7 +354,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 					hg->oneFingerCoordinates.push_back(m->secondMatchLoc);
 				}
 				else if (hg->state == TWO_FINGERS || hg->state == ZOOM_IN ||
-					hg->state == ZOOM_OUT) {
+					hg->state == ZOOM_OUT || hg->state == IDLE) {
 					// update firstFingerCoor-s
 					if (hg->secondFingerCoordinates.size() == 30) {
 						hg->secondFingerCoordinates.erase(hg->secondFingerCoordinates.begin());
