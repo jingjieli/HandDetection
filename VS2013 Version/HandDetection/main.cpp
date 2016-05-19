@@ -214,6 +214,12 @@ void produceBinaries(MyImage *m){
 		m->bw += m->bwList[i];
 	}
 	medianBlur(m->bw, m->bw, 7);
+
+	// perfrom morphological operation: dilation
+	/*int dilation_size = 2;
+	cv::Mat structElem = cv::getStructuringElement(cv::MORPH_ELLIPSE, 
+		cv::Size(2*dilation_size+1, 2*dilation_size+1), cv::Point(dilation_size, dilation_size));
+	cv::dilate(m->bw, m->bw, structElem);*/
 }
 
 void initWindows(MyImage m){
@@ -328,7 +334,7 @@ void makeContours(MyImage *m, HandGesture* hg){
 			}
 
 			if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) +
-				pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 30 && 
+				pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 50 &&
 				m->secondMatchScore >= 0.90) {
 				// the first and second trackers are not tracking the same finger
 				hg->fingerTips.push_back(m->secondMatchLoc);
@@ -385,7 +391,7 @@ void switchState(HandGesture* hg) {
 		}
 		if (hg->state == ONE_FINGER) {
 			// if two locations are close enough, consider the finger is static
-			if (dist < 8) {
+			if (dist < 12) {
 				touchFrameCounter++;
 			}
 			else {
@@ -406,10 +412,10 @@ void switchState(HandGesture* hg) {
 		}
 		else if (hg->state == TOUCH) {
 			// if two locations are close enough, consider the finger is static
-			if (dist < 8) {
+			if (dist < 12) {
 				touchFrameCounter++;
 			}
-			else if (dist >= 8 && dist <= 100) {
+			else if (dist >= 12 && dist <= 100) {
 				panFrameCounter++;
 			}
 			else {
@@ -443,10 +449,10 @@ void switchState(HandGesture* hg) {
 		}
 		else if (hg->state == PANNING) {
 			// if two locations are close enough, consider the finger is static
-			if (dist < 8) {
+			if (dist < 12) {
 				touchFrameCounter++;
 			}
-			else if (dist >= 8 && dist <= 100) {
+			else if (dist >= 12 && dist <= 100) {
 				panFrameCounter++;
 			}
 			else {
@@ -713,7 +719,7 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 			// store matching points 
 			if (hg->matchPointsCoordinates.size() > 0) {
 				if (sqrt(pow(hg->matchPointsCoordinates.back().x - m->firstMatchLoc.x, 2) +
-					pow(hg->matchPointsCoordinates.back().y - m->firstMatchLoc.y, 2)) < 100) {
+					pow(hg->matchPointsCoordinates.back().y - m->firstMatchLoc.y, 2)) < 50) {
 					if (hg->matchPointsCoordinates.size() == 30) {
 						hg->matchPointsCoordinates.erase(hg->matchPointsCoordinates.begin());
 					}
@@ -767,45 +773,47 @@ void patchMatchingTracker(MyImage *m, HandGesture* hg) {
 		m->secondMatchScore = maxVal;
 		std::cout << "Second matching point coordinates: " << m->secondMatchLoc.x << " " << m->secondMatchLoc.y << " maxVal = " << maxVal << " minVal = " << minVal << std::endl;
 
-		// if first and second match location are twoo close, same finger is probably detected
-		if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) +
-			pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 30 &&
-			m->secondMatchScore >= 0.90) {
+		if (m->secondMatchScore >= 0.90) {
 
-			// clear path if state has been switched
-			if (hg->prevState != hg->state) {
-				hg->secondMatchPtsCoordinates.clear();
-			}
+			// if first and second match location are twoo close, same finger is probably detected
+			if (sqrt(pow(m->firstMatchLoc.x - m->secondMatchLoc.x, 2) +
+				pow(m->firstMatchLoc.y - m->secondMatchLoc.y, 2)) > 50) {
 
-			// store matching points 
-			if (hg->secondMatchPtsCoordinates.size() > 0) {
-				if (sqrt(pow(hg->secondMatchPtsCoordinates.back().x - m->secondMatchLoc.x, 2) +
-					pow(hg->secondMatchPtsCoordinates.back().y - m->secondMatchLoc.y, 2)) < 100) {
-					if (hg->secondMatchPtsCoordinates.size() == 30) {
-						hg->secondMatchPtsCoordinates.erase(hg->secondMatchPtsCoordinates.begin());
-					}
-					hg->secondMatchPtsCoordinates.push_back(m->secondMatchLoc);
-				}
-				else {
+				// clear path if state has been switched
+				if (hg->prevState != hg->state) {
 					hg->secondMatchPtsCoordinates.clear();
 				}
-			}
-			else {
-				hg->secondMatchPtsCoordinates.push_back(m->secondMatchLoc);
-			}
 
-			// display matching points and trajectory
-			if ((matchLoc.x + m->secondPatchImg.cols) < m->src.cols &&
-				(matchLoc.y + m->secondPatchImg.rows) < m->src.rows) {
-
-				cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->secondPatchImg.cols,
-					matchLoc.y + m->secondPatchImg.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
-				if (hg->secondMatchPtsCoordinates.size() >= 2) {
-					for (int i = 0; i < hg->secondMatchPtsCoordinates.size() - 1; i++) {
-						cv::line(src_copy, hg->secondMatchPtsCoordinates[i], hg->secondMatchPtsCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+				// store matching points 
+				if (hg->secondMatchPtsCoordinates.size() > 0) {
+					if (sqrt(pow(hg->secondMatchPtsCoordinates.back().x - m->secondMatchLoc.x, 2) +
+						pow(hg->secondMatchPtsCoordinates.back().y - m->secondMatchLoc.y, 2)) < 50) {
+						if (hg->secondMatchPtsCoordinates.size() == 30) {
+							hg->secondMatchPtsCoordinates.erase(hg->secondMatchPtsCoordinates.begin());
+						}
+						hg->secondMatchPtsCoordinates.push_back(m->secondMatchLoc);
+					}
+					else {
+						hg->secondMatchPtsCoordinates.clear();
 					}
 				}
-				//cv::imshow("img2", src_copy);
+				else {
+					hg->secondMatchPtsCoordinates.push_back(m->secondMatchLoc);
+				}
+
+				// display matching points and trajectory
+				if ((matchLoc.x + m->secondPatchImg.cols) < m->src.cols &&
+					(matchLoc.y + m->secondPatchImg.rows) < m->src.rows) {
+
+					cv::rectangle(src_copy, matchLoc, cv::Point(matchLoc.x + m->secondPatchImg.cols,
+						matchLoc.y + m->secondPatchImg.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
+					if (hg->secondMatchPtsCoordinates.size() >= 2) {
+						for (int i = 0; i < hg->secondMatchPtsCoordinates.size() - 1; i++) {
+							cv::line(src_copy, hg->secondMatchPtsCoordinates[i], hg->secondMatchPtsCoordinates[i + 1], cv::Scalar(0, 255, 0), 2, 8);
+						}
+					}
+					//cv::imshow("img2", src_copy);
+				}
 			}
 		}
 		else {

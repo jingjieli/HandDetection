@@ -197,11 +197,12 @@ void HandGesture::addNumberToImg(MyImage *m){
 
 // calculate most frequent numbers of fingers 
 // over 20 frames
-void HandGesture::getFingerNumber(MyImage *m){
+void HandGesture::getFingerNumber(MyImage *m) {
 	removeRedundantFingerTips();
 	std::cout << "bounding box height = " << bRect.height << " width = " << bRect.width << std::endl;
 	std::cout << "m->src.rows = " << m->src.rows << " m->src.cols = " << m->src.cols << std::endl;
-	if (bRect.height > m->src.rows / 2 && nrNoFinger > 12 && isHand){
+	//if (bRect.height > m->src.rows / 2 && nrNoFinger > 12 && isHand){
+	if (nrNoFinger > 12 && isHand){
 		numberColor = Scalar(0, 200, 0);
 		addFingerNumberToVector();
 		if (frameNumber > 12){
